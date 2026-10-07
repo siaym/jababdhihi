@@ -5,6 +5,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.2.0-alpha] - 2026-10-07
+
+### Added
+- Complete Next.js 14 App Router, TypeScript, and Tailwind CSS web application.
+- Native bilingual i18n support (Bangla `bn` & English `en`) across all user surfaces.
+- Multi-step Incident Reporting Wizard (`/report`) featuring 10 incident categories, division/district locators, direct file uploads, and external evidence links (YouTube, Facebook, Google Drive, Dropbox).
+- Secure Case Tracking Portal (`/track`) using dual-key authentication (`BD-2026-XXXXXX` + random passkey), interactive progression timeline, and two-way case messaging.
+- Public Incident Reports Directory (`/reports` and `/reports/[id]`) enforcing neutral allegation terminology.
+- Geographic Accountability Map (`/map`) aggregating data across all 8 Bangladesh Divisions and 64 Districts without exposing sensitive coordinates.
+- Public Transparency Dashboard (`/dashboard`) distinguishing reports received from verified findings.
+- Institutional Directory (`/organizations`) tracking university, police, and government incident volumes with official response indicators.
+- Reviewer Moderation Queue & Case Review Workspace (`/admin` and `/admin/reports/[id]`) with confidential internal staff notes.
+- Support Center & Emergency Hotlines (`/resources`) listing verified national services (999, 109, 333, 106).
+- Public civic guidance pages (`/how-it-works`, `/methodology`, `/safety`).
+- Supabase PostgreSQL migration (`00001_initial_schema.sql`) with custom types, tables, and Row-Level Security (RLS).
+
 ## [0.1.0-alpha] - 2026-10-07
 
 ### Added

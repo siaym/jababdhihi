@@ -59,3 +59,80 @@
 - Phase 3: Reporting wizard with direct uploads and external evidence links.
 - Phase 4: Reviewer moderation portal and case management.
 - Phase 5: Public reports catalog, Bangladesh map, and statistics dashboard.
+
+---
+
+### Date: 2026-10-07 (Session 2)
+**Agent:** Antigravity (Advanced Agentic Assistant)  
+**Task:** Implementation of Phases 1 to 5 (Foundation, Public Web, Reporting Wizard, Moderation, Public Data)  
+**Files changed:**
+- `package.json`
+- `tsconfig.json`
+- `next.config.mjs`
+- `postcss.config.js`
+- `tailwind.config.ts`
+- `src/app/globals.css`
+- `src/app/layout.tsx`
+- `src/app/page.tsx`
+- `src/app/how-it-works/page.tsx`
+- `src/app/methodology/page.tsx`
+- `src/app/safety/page.tsx`
+- `src/app/resources/page.tsx`
+- `src/app/report/page.tsx`
+- `src/app/track/page.tsx`
+- `src/app/reports/page.tsx`
+- `src/app/reports/[id]/page.tsx`
+- `src/app/map/page.tsx`
+- `src/app/dashboard/page.tsx`
+- `src/app/organizations/page.tsx`
+- `src/app/admin/page.tsx`
+- `src/app/admin/reports/[id]/page.tsx`
+- `src/components/layout/Header.tsx`
+- `src/components/layout/Footer.tsx`
+- `src/components/ui/Button.tsx`
+- `src/components/ui/Badge.tsx`
+- `src/components/ui/Card.tsx`
+- `src/components/ui/Input.tsx`
+- `src/components/ui/Textarea.tsx`
+- `src/components/ui/Select.tsx`
+- `src/components/ui/Alert.tsx`
+- `src/components/ui/StatusTimeline.tsx`
+- `src/components/ui/EvidenceCard.tsx`
+- `src/lib/i18n/index.tsx`
+- `src/lib/i18n/dictionaries/bn.json`
+- `src/lib/i18n/dictionaries/en.json`
+- `src/config/constants.ts`
+- `src/types/index.ts`
+- `src/services/reports.ts`
+- `src/services/evidence.ts`
+- `src/lib/validation/report.schema.ts`
+- `supabase/migrations/00001_initial_schema.sql`
+
+**Database changes:**
+- Added Supabase migration `00001_initial_schema.sql` with full DDL for 12 tables, custom enums, RLS policies, and immutable audit log protection.
+
+**Security changes:**
+- Implemented client and server-side SSRF validation on external URLs.
+- Implemented sandboxed iframes (`youtube-nocookie.com`, Google Drive preview) and safe fallback cards.
+- Integrated dual-key anonymous case tracking (Public ID + Secret Passkey).
+- Enforced zero-IP anonymous intake.
+
+**UI changes:**
+- Implemented light-first, WCAG-compliant design system with bilingual toggle (বাংলা / English).
+- Implemented 5-step reporting wizard with live category cards, division/district selectors, and instant external link adder.
+- Implemented tracking portal with interactive progression timeline and 2-way reviewer messaging.
+- Implemented national map division overview and public transparency metrics dashboard.
+
+**Tests:**
+- Next.js production build (`npm run build`) succeeded with 0 errors across 15 static and dynamic routes.
+- Tested Next.js production server on port 3005: all 11 core routes returned HTTP 200 OK.
+
+**Problems encountered:**
+- NPM package naming error due to spaces in repository folder path: resolved by configuring valid package name in `package.json`.
+- Next.js type check highlighted missing `is_embeddable` on direct-upload evidence items: resolved by marking property optional on `EvidenceItem`.
+
+**Solutions:**
+- Cleanly typed evidence models and verified build.
+
+**Remaining work:**
+- Phase 6: Live Supabase environment configuration, WebSockets for real-time messaging, and transactional email alerts.
