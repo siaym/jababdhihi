@@ -283,21 +283,16 @@ export default function HomePage() {
       </section>
 
       {/* ===================================================================
-          2. ACCOUNTABILITY DOCTRINE BANNER (Overlapping Floating Transition)
+          2. CATEGORY SECTION ("What type of issue? / Explore by Category")
          =================================================================== */}
-      <AccountabilityDoctrineBanner className="relative z-20 -mt-6 sm:-mt-10 lg:-mt-12 pb-4 sm:pb-6" />
-
-      {/* ===================================================================
-          3. CATEGORY SECTION ("Explore by Category")
-         =================================================================== */}
-      <section id="categories" className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+      <section id="categories" className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6 sm:mb-8">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#C62828]" />
               <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-[#C62828]">
-                Civic Categories · ক্যাটাগরিভিত্তিক অনুসন্ধান
+                What Type of Issue? · কোন ধরণের বিষয়?
               </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-[#111827] tracking-tight">
@@ -325,7 +320,7 @@ export default function HomePage() {
       </section>
 
       {/* ===================================================================
-          4. REPORTS ACROSS BANGLADESH SECTION (MAP + REGIONAL BREAKDOWN)
+          3. GEOGRAPHIC DISCOVERY SECTION ("Where is it happening? / Map")
          =================================================================== */}
       <section className="bg-slate-50/70 border-t border-slate-200/80 py-12 sm:py-16">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -334,7 +329,7 @@ export default function HomePage() {
       </section>
 
       {/* ===================================================================
-          5. LATEST REPORTS SECTION (STATUS-PROMINENT DOSSIERS)
+          4. LATEST REPORTS SECTION ("What has been reported? / Reports")
          =================================================================== */}
       <section className="bg-white border-t border-slate-200/80 py-14 sm:py-16">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -343,7 +338,14 @@ export default function HomePage() {
       </section>
 
       {/* ===================================================================
-          6. FINAL CALL TO ACTION (CIVIC ENGAGEMENT MOMENT)
+          5. METHODOLOGY SECTION ("How do we handle reports? / Our Process")
+         =================================================================== */}
+      <section className="bg-[#F8F7F3] border-t border-slate-200/80 py-12 sm:py-16">
+        <AccountabilityDoctrineBanner />
+      </section>
+
+      {/* ===================================================================
+          6. FINAL CALL TO ACTION ("Do you have something to report?")
          =================================================================== */}
       <FinalCtaSection />
     </div>

@@ -1,19 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { BANGLADESH_DIVISIONS, INITIAL_CATEGORIES } from '@/config/constants';
-import { MapPin, Shield, AlertCircle, ArrowRight, BarChart2 } from 'lucide-react';
+import { MapPin, Shield, AlertCircle, ArrowRight, BarChart2, ShieldCheck, FileCheck, Layers } from 'lucide-react';
 
-export default function BangladeshMapPage() {
+function MapContent() {
   const { locale, t } = useI18n();
+  const searchParams = useSearchParams();
+  const urlDivision = searchParams.get('division');
 
-  const [selectedDivision, setSelectedDivision] = useState<string>('Dhaka');
+  const [selectedDivision, setSelectedDivision] = useState<string>(urlDivision || 'Dhaka');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  useEffect(() => {
+    if (urlDivision && BANGLADESH_DIVISIONS[urlDivision]) {
+      setSelectedDivision(urlDivision);
+    }
+  }, [urlDivision]);
 
   // Realistic aggregate count data per division
   const divisionStats: Record<string, { count: number; verified: number; referred: number }> = {
@@ -88,7 +97,7 @@ export default function BangladeshMapPage() {
             </CardHeader>
 
             <CardContent className="space-y-6">
-              {/* Division Summary Card */}
+              {/* Division Summary Card with Consistent Status Colors */}
               <div className="grid grid-cols-3 gap-3 bg-civic-slate-50 p-4 rounded-lg border border-civic-slate-200 text-center">
                 <div>
                   <div className="text-2xl font-bold text-civic-navy">{activeStats.count}</div>
@@ -96,48 +105,48 @@ export default function BangladeshMapPage() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-emerald-700">{activeStats.verified}</div>
-                  <div className="text-[11px] text-emerald-800 font-medium mt-0.5">Verified Allegations</div>
+                  <div className="text-[11px] text-emerald-800 font-medium mt-0.5">🟢 Verified Allegations</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-indigo-700">{activeStats.referred}</div>
-                  <div className="text-[11px] text-indigo-800 font-medium mt-0.5">Referred to Agencies</div>
+                  <div className="text-2xl font-bold text-purple-700">{activeStats.referred}</div>
+                  <div className="text-[11px] text-purple-800 font-medium mt-0.5">🟣 Referred to Agencies</div>
                 </div>
               </div>
 
-                {/* District Breakdown Grid */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-semibold uppercase text-civic-slate-700">
-                      {selectedDivision} Division Districts ({districts.length})
-                    </h4>
-                    <Link
-                      href={`/reports?division=${selectedDivision}`}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#C62828] hover:underline"
-                    >
-                      <span>View All {selectedDivision} Reports</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {districts.map((dist, idx) => {
-                      const distCount = Math.max(1, Math.round(activeStats.count / (districts.length + idx * 0.4)));
-                      return (
-                        <Link
-                          key={dist}
-                          href={`/reports?division=${selectedDivision}&search=${encodeURIComponent(dist)}`}
-                          className="p-3 bg-white hover:bg-slate-50 rounded border border-civic-slate-200 flex items-center justify-between text-xs transition-colors group"
-                        >
-                          <span className="font-medium text-civic-slate-800 group-hover:text-[#C62828] transition-colors">{dist}</span>
-                          <span className="font-mono font-bold text-civic-navy bg-civic-slate-100 px-2 py-0.5 rounded text-[11px]">
-                            {distCount}
-                          </span>
-                        </Link>
-                      );
-                    })}
-                  </div>
+              {/* District Breakdown Grid */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold uppercase text-civic-slate-700">
+                    {selectedDivision} Division Districts ({districts.length})
+                  </h4>
+                  <Link
+                    href={`/reports?division=${selectedDivision}`}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#C62828] hover:underline"
+                  >
+                    <span>View All {selectedDivision} Reports</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {districts.map((dist, idx) => {
+                    const distCount = Math.max(1, Math.round(activeStats.count / (districts.length + idx * 0.4)));
+                    return (
+                      <Link
+                        key={dist}
+                        href={`/reports?division=${selectedDivision}&search=${encodeURIComponent(dist)}`}
+                        className="p-3 bg-white hover:bg-slate-50 rounded border border-civic-slate-200 flex items-center justify-between text-xs transition-colors group"
+                      >
+                        <span className="font-medium text-civic-slate-800 group-hover:text-[#C62828] transition-colors">{dist}</span>
+                        <span className="font-mono font-bold text-civic-navy bg-civic-slate-100 px-2 py-0.5 rounded text-[11px]">
+                          {distCount}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Column: Division Ranking & Quick Filters */}
@@ -179,26 +188,16 @@ export default function BangladeshMapPage() {
               })}
             </CardContent>
           </Card>
-
-          <Card className="border-civic-slate-200 bg-emerald-50/20">
-            <CardContent className="p-5 space-y-3">
-              <h4 className="font-semibold text-sm text-civic-navy">
-                {locale === 'bn' ? 'আপনার এলাকায় কোনো ঘটনা ঘটেছে?' : 'Witnessed an Incident in Your Area?'}
-              </h4>
-              <p className="text-xs text-civic-slate-600 leading-relaxed">
-                {locale === 'bn'
-                  ? 'গোপনীয়তা রক্ষা করে প্রতিবেদন দাখিল করুন। কোনো ব্যক্তিগত পরিচয় সর্বসাধারণের সামনে প্রকাশ করা হবে না।'
-                  : 'Document incidents securely. All personal identifiers are protected in our encrypted vault.'}
-              </p>
-              <Link href="/report" className="block pt-1">
-                <Button variant="primary" size="sm" className="w-full text-xs">
-                  {locale === 'bn' ? 'প্রতিবেদন দাখিল করুন' : 'Submit Incident Report'}
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BangladeshMapPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-slate-500">Loading map data...</div>}>
+      <MapContent />
+    </Suspense>
   );
 }

@@ -18,6 +18,7 @@ import {
   Calendar,
   Building,
   ArrowLeft,
+  ArrowRight,
   AlertTriangle,
   FileCheck,
   CheckCircle2,
@@ -121,13 +122,17 @@ export default function PublicReportDetailPage() {
 
           {/* Metadata pill row */}
           <div className="flex flex-wrap items-center gap-4 text-xs text-civic-slate-500 pt-1">
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-civic-slate-400" />
+            <Link
+              href={`/map?division=${encodeURIComponent(report.division)}`}
+              className="inline-flex items-center gap-1.5 text-slate-700 hover:text-[#C62828] hover:underline font-medium transition-colors"
+              title="View on Bangladesh map"
+            >
+              <MapPin className="w-3.5 h-3.5 text-[#C62828]" />
               <span>
                 {report.division}, {report.district}{' '}
                 {report.upazila_thana ? `(${report.upazila_thana})` : ''}
               </span>
-            </span>
+            </Link>
 
             <span className="inline-flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-civic-slate-400" />
@@ -140,6 +145,136 @@ export default function PublicReportDetailPage() {
                 {report.custom_organization_name || report.institution_type || 'Institution'}
               </span>
             </span>
+          </div>
+
+          {/* Review Status Progression Stepper */}
+          <div className="pt-3 border-t border-civic-slate-100">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+              Review Status Progression · পর্যালোচনা অগ্রগতি
+            </div>
+            <div className="flex items-center justify-between gap-1 overflow-x-auto pb-1 text-xs">
+              {/* Step 1: Received */}
+              <div className="flex items-center gap-1.5 text-emerald-700 font-semibold shrink-0">
+                <span className="w-4 h-4 rounded-full bg-emerald-100 border border-emerald-500 text-emerald-800 flex items-center justify-center text-[10px]">
+                  ✓
+                </span>
+                <span>Received</span>
+              </div>
+              <span className="h-[2px] w-6 sm:w-10 bg-emerald-300 shrink-0" />
+
+              {/* Step 2: Under Review */}
+              <div
+                className={`flex items-center gap-1.5 shrink-0 ${
+                  report.status === 'under_review'
+                    ? 'text-amber-700 font-bold'
+                    : ['verified', 'referred', 'resolved'].includes(report.status) || report.verified_status
+                    ? 'text-emerald-700 font-semibold'
+                    : 'text-slate-400'
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                    report.status === 'under_review'
+                      ? 'bg-amber-100 border border-amber-500 text-amber-800'
+                      : ['verified', 'referred', 'resolved'].includes(report.status) || report.verified_status
+                      ? 'bg-emerald-100 border border-emerald-500 text-emerald-800'
+                      : 'bg-slate-100 border border-slate-300 text-slate-400'
+                  }`}
+                >
+                  {['verified', 'referred', 'resolved'].includes(report.status) || report.verified_status
+                    ? '✓'
+                    : '●'}
+                </span>
+                <span>Under Review</span>
+              </div>
+              <span
+                className={`h-[2px] w-6 sm:w-10 shrink-0 ${
+                  ['verified', 'referred', 'resolved'].includes(report.status) || report.verified_status
+                    ? 'bg-emerald-300'
+                    : 'bg-slate-200'
+                }`}
+              />
+
+              {/* Step 3: Verified */}
+              <div
+                className={`flex items-center gap-1.5 shrink-0 ${
+                  report.status === 'verified' || report.verified_status
+                    ? 'text-emerald-700 font-bold'
+                    : ['referred', 'resolved'].includes(report.status)
+                    ? 'text-emerald-700 font-semibold'
+                    : 'text-slate-400'
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                    report.status === 'verified' || report.verified_status
+                      ? 'bg-emerald-100 border border-emerald-500 text-emerald-800'
+                      : ['referred', 'resolved'].includes(report.status)
+                      ? 'bg-emerald-100 border border-emerald-500 text-emerald-800'
+                      : 'bg-slate-100 border border-slate-300 text-slate-400'
+                  }`}
+                >
+                  {report.status === 'verified' || report.verified_status
+                    ? '✓'
+                    : ['referred', 'resolved'].includes(report.status)
+                    ? '✓'
+                    : '○'}
+                </span>
+                <span>Verified</span>
+              </div>
+              <span
+                className={`h-[2px] w-6 sm:w-10 shrink-0 ${
+                  ['referred', 'resolved'].includes(report.status) ? 'bg-purple-300' : 'bg-slate-200'
+                }`}
+              />
+
+              {/* Step 4: Referred */}
+              <div
+                className={`flex items-center gap-1.5 shrink-0 ${
+                  report.status === 'referred'
+                    ? 'text-purple-700 font-bold'
+                    : report.status === 'resolved'
+                    ? 'text-emerald-700 font-semibold'
+                    : 'text-slate-400'
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                    report.status === 'referred'
+                      ? 'bg-purple-100 border border-purple-500 text-purple-800'
+                      : report.status === 'resolved'
+                      ? 'bg-emerald-100 border border-emerald-500 text-emerald-800'
+                      : 'bg-slate-100 border border-slate-300 text-slate-400'
+                  }`}
+                >
+                  {report.status === 'resolved' ? '✓' : report.status === 'referred' ? '●' : '○'}
+                </span>
+                <span>Referred</span>
+              </div>
+              <span
+                className={`h-[2px] w-6 sm:w-10 shrink-0 ${
+                  report.status === 'resolved' ? 'bg-blue-300' : 'bg-slate-200'
+                }`}
+              />
+
+              {/* Step 5: Resolved */}
+              <div
+                className={`flex items-center gap-1.5 shrink-0 ${
+                  report.status === 'resolved' ? 'text-blue-700 font-bold' : 'text-slate-400'
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                    report.status === 'resolved'
+                      ? 'bg-blue-100 border border-blue-500 text-blue-800'
+                      : 'bg-slate-100 border border-slate-300 text-slate-400'
+                  }`}
+                >
+                  {report.status === 'resolved' ? '✓' : '○'}
+                </span>
+                <span>Resolved</span>
+              </div>
+            </div>
           </div>
         </CardHeader>
 
@@ -197,6 +332,35 @@ export default function PublicReportDetailPage() {
             <p className="text-xs text-civic-slate-600 leading-relaxed italic">
               "This entity has received notice of the citizen submission and is reviewing the matter through internal procedures."
             </p>
+          </div>
+
+          {/* Geographic Ecosystem Loop: View Other Reports Near This Area */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#C62828]" />
+                <span>Geographic Discovery · আঞ্চলিক সংযোগ</span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Inspect other public-interest reports documented across {report.division}{report.district ? ` / ${report.district}` : ''}.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/reports?division=${encodeURIComponent(report.division)}`}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-[#101828] hover:bg-black text-white text-xs font-semibold shrink-0 transition-colors shadow-sm"
+              >
+                <span>View {report.division} Reports</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                href={`/map?division=${encodeURIComponent(report.division)}`}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium shrink-0 transition-colors"
+              >
+                <span>Inspect on Map</span>
+              </Link>
+            </div>
           </div>
 
           {/* Methodology & Legal Notice Box */}

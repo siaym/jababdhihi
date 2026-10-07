@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { SlidersHorizontal, MapPin, Eye, ArrowRight, ShieldCheck, Clock, FileCheck } from 'lucide-react';
+import { SlidersHorizontal, MapPin, ArrowRight, ShieldCheck, Clock, FileCheck, CheckCircle, Paperclip } from 'lucide-react';
 
 interface ReportCardItem {
   id: string;
@@ -13,9 +13,9 @@ interface ReportCardItem {
   description: string;
   timeAgo: string;
   statusLabel: string;
-  statusType: 'under_review' | 'verified' | 'referred' | 'in_progress';
-  readersCount: string;
+  statusType: 'under_review' | 'verified' | 'referred' | 'resolved';
   evidenceCount: number;
+  evidenceType: string;
 }
 
 const DEFAULT_LATEST_REPORTS: ReportCardItem[] = [
@@ -30,8 +30,8 @@ const DEFAULT_LATEST_REPORTS: ReportCardItem[] = [
     timeAgo: '3 hours ago',
     statusLabel: 'UNDER REVIEW',
     statusType: 'under_review',
-    readersCount: '1.2k readers',
     evidenceCount: 2,
+    evidenceType: 'Video recording & inspection slip',
   },
   {
     id: 'rep-002',
@@ -44,8 +44,8 @@ const DEFAULT_LATEST_REPORTS: ReportCardItem[] = [
     timeAgo: '7 hours ago',
     statusLabel: 'VERIFIED FINDING',
     statusType: 'verified',
-    readersCount: '3.4k readers',
     evidenceCount: 3,
+    evidenceType: 'Corroborated audio & medical report',
   },
   {
     id: 'rep-003',
@@ -58,14 +58,14 @@ const DEFAULT_LATEST_REPORTS: ReportCardItem[] = [
     timeAgo: '1 day ago',
     statusLabel: 'REFERRED TO ACC',
     statusType: 'referred',
-    readersCount: '2.1k readers',
-    evidenceCount: 1,
+    evidenceCount: 2,
+    evidenceType: 'Bank challan & audio log',
   },
 ];
 
 export function LatestReportsFeed() {
   const [reports, setReports] = useState<ReportCardItem[]>(DEFAULT_LATEST_REPORTS);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'verified' | 'under_review'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'verified' | 'under_review' | 'referred'>('all');
 
   useEffect(() => {
     fetch('/api/v1/public/reports?limit=6')
@@ -75,6 +75,8 @@ export function LatestReportsFeed() {
           const mapped: ReportCardItem[] = json.data.map((r: any) => {
             const isVerified = r.verified_status === true || r.status === 'verified';
             const isReferred = r.status === 'referred';
+            const isResolved = r.status === 'resolved';
+
             let statusLabel = 'UNDER REVIEW';
             let statusType: ReportCardItem['statusType'] = 'under_review';
 
@@ -84,6 +86,9 @@ export function LatestReportsFeed() {
             } else if (isReferred) {
               statusLabel = 'REFERRED TO ACC';
               statusType = 'referred';
+            } else if (isResolved) {
+              statusLabel = 'RESOLVED';
+              statusType = 'resolved';
             }
 
             const district = r.district || r.division || 'Dhaka';
@@ -101,8 +106,8 @@ export function LatestReportsFeed() {
               timeAgo: 'Recently logged',
               statusLabel,
               statusType,
-              readersCount: 'Registry record',
               evidenceCount: r.evidence_count || 1,
+              evidenceType: r.evidence_type || 'Audited evidence dossier',
             };
           });
           setReports(mapped);
@@ -117,13 +122,20 @@ export function LatestReportsFeed() {
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
             <ShieldCheck className="w-3 h-3 text-emerald-600" />
-            <span>{label}</span>
+            <span>✓ {label}</span>
           </span>
         );
       case 'referred':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider font-bold bg-purple-50 text-purple-800 border border-purple-300">
             <FileCheck className="w-3 h-3 text-purple-600" />
+            <span>{label}</span>
+          </span>
+        );
+      case 'resolved':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider font-bold bg-blue-50 text-blue-800 border border-blue-300">
+            <CheckCircle className="w-3 h-3 text-blue-600" />
             <span>{label}</span>
           </span>
         );
@@ -141,6 +153,7 @@ export function LatestReportsFeed() {
   const filteredReports = reports.filter((item) => {
     if (activeFilter === 'verified') return item.statusType === 'verified';
     if (activeFilter === 'under_review') return item.statusType === 'under_review';
+    if (activeFilter === 'referred') return item.statusType === 'referred';
     return true;
   });
 
@@ -179,6 +192,17 @@ export function LatestReportsFeed() {
             </button>
             <button
               type="button"
+              onClick={() => setActiveFilter('under_review')}
+              className={`px-3 py-1.5 rounded-md transition-all ${
+                activeFilter === 'under_review'
+                  ? 'bg-white text-amber-800 shadow-sm'
+                  : 'hover:text-[#101828]'
+              }`}
+            >
+              Under Review
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveFilter('verified')}
               className={`px-3 py-1.5 rounded-md transition-all ${
                 activeFilter === 'verified'
@@ -190,14 +214,14 @@ export function LatestReportsFeed() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveFilter('under_review')}
+              onClick={() => setActiveFilter('referred')}
               className={`px-3 py-1.5 rounded-md transition-all ${
-                activeFilter === 'under_review'
-                  ? 'bg-white text-amber-800 shadow-sm'
+                activeFilter === 'referred'
+                  ? 'bg-white text-purple-800 shadow-sm'
                   : 'hover:text-[#101828]'
               }`}
             >
-              Under Review
+              Referred
             </button>
           </div>
 
@@ -211,66 +235,73 @@ export function LatestReportsFeed() {
         </div>
       </div>
 
-      {/* Editorial Report Cards Grid (Status prominent, no popularity voting) */}
+      {/* Editorial Report Cards Grid (Zero vanity metrics, verified subtle accent) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredReports.map((item) => (
-          <div
-            key={item.id}
-            className="group flex flex-col justify-between rounded-xl bg-white border border-[#E2E8F0] p-5 shadow-sm hover:shadow-md hover:border-slate-400 transition-all text-left"
-          >
-            <div className="space-y-3">
-              {/* Prominent Status Badge First */}
-              <div className="flex items-center justify-between gap-2">
-                {getStatusBadge(item.statusType, item.statusLabel)}
-                <span className="text-[11px] font-mono text-slate-400">
-                  {item.category}
-                </span>
-              </div>
+        {filteredReports.map((item) => {
+          const isVerified = item.statusType === 'verified';
+          return (
+            <div
+              key={item.id}
+              className={`group flex flex-col justify-between rounded-xl bg-white border p-5 shadow-sm hover:shadow-md hover:border-slate-400 transition-all text-left ${
+                isVerified
+                  ? 'border-emerald-200 border-l-[3.5px] border-l-emerald-600'
+                  : 'border-[#E2E8F0]'
+              }`}
+            >
+              <div className="space-y-3">
+                {/* Prominent Status Badge First */}
+                <div className="flex items-center justify-between gap-2">
+                  {getStatusBadge(item.statusType, item.statusLabel)}
+                  <span className="text-[11px] font-mono text-slate-400">
+                    {item.category}
+                  </span>
+                </div>
 
-              {/* Title with link to dossier */}
-              <Link href={`/reports/${item.id}`} className="block">
-                <h3 className="font-bold text-sm sm:text-[15px] text-[#101828] group-hover:text-[#C62828] transition-colors leading-snug line-clamp-2">
-                  {item.title}
-                </h3>
-              </Link>
-
-              {/* Location with direct navigation link to Map & Time */}
-              <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                <Link
-                  href={`/map?division=${encodeURIComponent(item.district)}`}
-                  className="inline-flex items-center gap-1 text-slate-600 hover:text-[#C62828] hover:underline transition-colors font-medium"
-                  title="View this region on the map"
-                >
-                  <MapPin className="w-3.5 h-3.5 text-[#C62828] shrink-0" />
-                  <span>{item.location}</span>
+                {/* Title with link to dossier */}
+                <Link href={`/reports/${item.id}`} className="block">
+                  <h3 className="font-bold text-sm sm:text-[15px] text-[#101828] group-hover:text-[#C62828] transition-colors leading-snug line-clamp-2">
+                    {item.title}
+                  </h3>
                 </Link>
-                <span className="text-slate-300">·</span>
-                <span>{item.timeAgo}</span>
+
+                {/* Location with direct navigation link to Map & Time */}
+                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <Link
+                    href={`/map?division=${encodeURIComponent(item.district)}`}
+                    className="inline-flex items-center gap-1 text-slate-600 hover:text-[#C62828] hover:underline transition-colors font-medium"
+                    title="View this region on the map"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-[#C62828] shrink-0" />
+                    <span>{item.location}</span>
+                  </Link>
+                  <span className="text-slate-300">·</span>
+                  <span>{item.timeAgo}</span>
+                </div>
+
+                {/* Description */}
+                <p className="text-xs text-[#64748B] leading-relaxed line-clamp-3 pt-1">
+                  {item.description}
+                </p>
               </div>
 
-              {/* Description */}
-              <p className="text-xs text-[#64748B] leading-relaxed line-clamp-3 pt-1">
-                {item.description}
-              </p>
-            </div>
+              {/* Bottom Meta Row: Evidence indicator only (Zero vanity views/upvoting) */}
+              <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span className="flex items-center gap-1 text-[11px] text-slate-600 font-medium">
+                  <Paperclip className="w-3 h-3 text-slate-400" />
+                  <span>{item.evidenceCount} evidence files attached</span>
+                </span>
 
-            {/* Bottom Meta Row (Readers & Evidence, zero popularity upvoting) */}
-            <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-              <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                <Eye className="w-3.5 h-3.5 text-slate-400" />
-                <span>{item.readersCount}</span>
-              </span>
-
-              <Link
-                href={`/reports/${item.id}`}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#101828] hover:text-[#C62828] transition-colors"
-              >
-                <span>View Case Dossier</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+                <Link
+                  href={`/reports/${item.id}`}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#101828] hover:text-[#C62828] transition-colors"
+                >
+                  <span>View Case Dossier</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

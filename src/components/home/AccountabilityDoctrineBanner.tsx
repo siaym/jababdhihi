@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export function AccountabilityDoctrineBanner({ className = '' }: { className?: string }) {
   const steps = [
@@ -12,43 +12,43 @@ export function AccountabilityDoctrineBanner({ className = '' }: { className?: s
       badgeBorder: 'border-slate-300',
       badgeBg: 'bg-slate-50',
       badgeText: 'text-slate-700',
-      dotColor: 'bg-slate-400',
+      statusColor: '#64748B',
     },
     {
       num: '02',
-      title: 'REVIEWED',
+      title: 'UNDER REVIEW',
       titleBn: 'পর্যালোচনা',
       desc: 'Moderators evaluate public-interest merit, redact personal victim data, and inspect evidence.',
       badgeBorder: 'border-amber-400',
       badgeBg: 'bg-amber-50',
       badgeText: 'text-amber-800',
-      dotColor: 'bg-amber-500',
+      statusColor: '#F59E0B',
     },
     {
       num: '03',
-      title: 'VERIFIED',
+      title: 'VERIFIED FINDING',
       titleBn: 'যাচাইকৃত',
       desc: 'Corroborated by authentic audio, video, or official documentary verification standards.',
       badgeBorder: 'border-emerald-500',
       badgeBg: 'bg-emerald-50',
       badgeText: 'text-emerald-800',
-      dotColor: 'bg-emerald-500',
+      statusColor: '#16A34A',
     },
     {
       num: '04',
-      title: 'REFERRED',
+      title: 'REFERRED & RESOLVED',
       titleBn: 'নিষ্পত্তি ও প্রেরণ',
-      desc: 'Transmitted to official civic ombudsmen, legal aid, or preserved as public archive.',
-      badgeBorder: 'border-blue-500',
-      badgeBg: 'bg-blue-50',
-      badgeText: 'text-blue-800',
-      dotColor: 'bg-blue-500',
+      desc: 'Transmitted to official civic ombudsmen, legal aid, or archived with institutional response.',
+      badgeBorder: 'border-purple-500',
+      badgeBg: 'bg-purple-50',
+      badgeText: 'text-purple-800',
+      statusColor: '#7C3AED',
     },
   ];
 
   return (
     <section className={`max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 ${className}`}>
-      <div className="rounded-[16px] bg-white border border-[#E2E8F0] shadow-xl shadow-slate-900/5 overflow-hidden">
+      <div className="rounded-[16px] bg-white border border-[#E2E8F0] shadow-md shadow-slate-900/5 overflow-hidden">
         {/* Top Header */}
         <div className="p-6 sm:p-8 lg:p-10 border-b border-[#F1F5F9] bg-[#FAFAF9]">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -56,7 +56,7 @@ export function AccountabilityDoctrineBanner({ className = '' }: { className?: s
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#C62828]" />
                 <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-[#C62828]">
-                  Our Approach · আমাদের পদ্ধতি
+                  Our Process · আমাদের পদ্ধতি
                 </span>
               </div>
               <h2 className="text-2xl sm:text-3xl lg:text-[32px] font-black text-[#111827] tracking-tight leading-tight">
@@ -98,17 +98,16 @@ export function AccountabilityDoctrineBanner({ className = '' }: { className?: s
 
                 {/* Title */}
                 <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-[#111827] tracking-tight flex items-center gap-1.5">
-                    <span className={`w-1.5 h-1.5 rounded-full ${step.dotColor}`} />
+                  <h3 className="font-bold text-sm lg:text-[15px] text-[#111827] tracking-tight flex items-center gap-1.5">
                     <span>{step.title}</span>
                   </h3>
-                  <span className="text-[11px] text-slate-500 font-bengali">
-                    ({step.titleBn})
-                  </span>
+                  <p className="font-bengali text-xs text-slate-400 font-medium">
+                    {step.titleBn}
+                  </p>
                 </div>
 
                 {/* Description */}
-                <p className="text-xs text-[#64748B] leading-relaxed">
+                <p className="text-xs text-slate-500 leading-relaxed max-w-[260px]">
                   {step.desc}
                 </p>
               </div>

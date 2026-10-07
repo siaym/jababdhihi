@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -22,18 +23,33 @@ import {
   ArrowRight,
   FileCheck,
   AlertCircle,
+  ShieldCheck,
 } from 'lucide-react';
 
-export default function PublicReportsPage() {
+function ReportsContent() {
   const { locale, t } = useI18n();
+  const searchParams = useSearchParams();
 
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [selectedDivision, setSelectedDivision] = useState<string>('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const urlDivision = searchParams.get('division') || '';
+  const urlCategory = searchParams.get('category') || '';
+  const urlStatus = searchParams.get('status') || '';
+  const urlSearch = searchParams.get('search') || '';
+
+  const [searchQuery, setSearchQuery] = useState<string>(urlSearch);
+  const [selectedCategory, setSelectedCategory] = useState<string>(urlCategory);
+  const [selectedDivision, setSelectedDivision] = useState<string>(urlDivision);
+  const [selectedStatus, setSelectedStatus] = useState<string>(urlStatus);
 
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Sync state if URL search parameters change
+  useEffect(() => {
+    if (urlDivision) setSelectedDivision(urlDivision);
+    if (urlCategory) setSelectedCategory(urlCategory);
+    if (urlStatus) setSelectedStatus(urlStatus);
+    if (urlSearch) setSearchQuery(urlSearch);
+  }, [urlDivision, urlCategory, urlStatus, urlSearch]);
 
   useEffect(() => {
     loadReports();
@@ -103,7 +119,7 @@ export default function PublicReportsPage() {
                   placeholder={
                     locale === 'bn'
                       ? 'কীওয়ার্ড, আইডি বা প্রতিষ্ঠানের নাম দিয়ে খুঁজুন...'
-                      : 'Search by keyword, Report ID, or institution name...'
+                      : 'Search by keyword, Report ID, or location (e.g. Mirpur, Dhaka)...'
                   }
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -149,10 +165,10 @@ export default function PublicReportsPage() {
                 className="text-xs"
               >
                 <option value="">{locale === 'bn' ? 'সকল অবস্থা' : 'All Statuses'}</option>
-                <option value="under_review">Under Review</option>
-                <option value="verified">Verified Allegation</option>
-                <option value="referred">Referred to Agency</option>
-                <option value="resolved">Resolved</option>
+                <option value="under_review">🟡 Under Review</option>
+                <option value="verified">🟢 Verified Finding</option>
+                <option value="referred">🟣 Referred to Agency</option>
+                <option value="resolved">🔵 Resolved</option>
               </Select>
 
               <Button
@@ -192,72 +208,89 @@ export default function PublicReportsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {reports.map((rep) => (
-              <Card
-                key={rep.id}
-                className="hover:border-civic-navy/40 transition-all flex flex-col justify-between"
-              >
-                <CardContent className="p-5 space-y-3 flex-1 flex flex-col">
-                  {/* Top Bar: Case ID & Status Badge */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-xs font-bold text-civic-navy bg-civic-slate-100 px-2 py-0.5 rounded">
-                      {rep.report_number}
-                    </span>
-                    <Badge status={rep.status} />
-                  </div>
-
-                  {/* Category Name */}
-                  <div className="text-xs font-semibold text-civic-slate-600">
-                    {locale === 'bn'
-                      ? rep.category?.name_bn
-                      : rep.category?.name_en || 'General Incident'}
-                  </div>
-
-                  {/* Neutral Allegation Title & Snippet */}
-                  <div className="flex-1 space-y-1.5">
-                    <h3 className="font-semibold text-sm text-civic-slate-900 line-clamp-2">
-                      {rep.public_summary ||
-                        `Report alleging misconduct regarding ${
-                          rep.custom_organization_name || rep.institution_type || 'unspecified entity'
-                        }`}
-                    </h3>
-                    <p className="text-xs text-civic-slate-600 line-clamp-3 leading-relaxed">
-                      {rep.description}
-                    </p>
-                  </div>
-
-                  {/* Metadata Row */}
-                  <div className="pt-3 border-t border-civic-slate-100 flex flex-wrap items-center justify-between text-[11px] text-civic-slate-500 gap-2">
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-civic-slate-400" />
-                      {rep.division}, {rep.district}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-civic-slate-400" />
-                      {formatDate(rep.incident_date, locale)}
-                    </span>
-                  </div>
-                </CardContent>
-
-                <div className="px-5 pb-4 pt-0">
-                  <Link href={`/reports/${rep.report_number}`} className="block">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-xs gap-1.5 hover:bg-civic-slate-50"
-                    >
-                      <span>
-                        {locale === 'bn' ? 'বিস্তারিত তথ্য দেখুন' : 'View Case Dossier'}
+            {reports.map((rep) => {
+              const isVerified = rep.status === 'verified' || rep.verified_status;
+              return (
+                <Card
+                  key={rep.id}
+                  className={`hover:border-slate-400 transition-all flex flex-col justify-between ${
+                    isVerified ? 'border-emerald-200 border-l-[3.5px] border-l-emerald-600' : ''
+                  }`}
+                >
+                  <CardContent className="p-5 space-y-3 flex-1 flex flex-col">
+                    {/* Top Bar: Case ID & Status Badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs font-bold text-civic-navy bg-civic-slate-100 px-2 py-0.5 rounded">
+                        {rep.report_number}
                       </span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
-                </div>
-              </Card>
-            ))}
+                      <Badge status={rep.status} />
+                    </div>
+
+                    {/* Category Name */}
+                    <div className="text-xs font-semibold text-civic-slate-600">
+                      {locale === 'bn'
+                        ? rep.category?.name_bn
+                        : rep.category?.name_en || 'General Incident'}
+                    </div>
+
+                    {/* Neutral Allegation Title & Snippet */}
+                    <div className="flex-1 space-y-1.5">
+                      <h3 className="font-semibold text-sm text-civic-slate-900 line-clamp-2">
+                        {rep.public_summary ||
+                          `Report alleging misconduct regarding ${
+                            rep.custom_organization_name || rep.institution_type || 'unspecified entity'
+                          }`}
+                      </h3>
+                      <p className="text-xs text-civic-slate-600 line-clamp-3 leading-relaxed">
+                        {rep.description}
+                      </p>
+                    </div>
+
+                    {/* Metadata Row with Map Link */}
+                    <div className="pt-3 border-t border-civic-slate-100 flex flex-wrap items-center justify-between text-[11px] text-civic-slate-500 gap-2">
+                      <Link
+                        href={`/map?division=${encodeURIComponent(rep.division)}`}
+                        className="inline-flex items-center gap-1 text-slate-600 hover:text-[#C62828] hover:underline font-medium transition-colors"
+                        title="View on Map"
+                      >
+                        <MapPin className="w-3 h-3 text-[#C62828]" />
+                        <span>{rep.division}, {rep.district}</span>
+                      </Link>
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-civic-slate-400" />
+                        <span>{formatDate(rep.incident_date, locale)}</span>
+                      </span>
+                    </div>
+                  </CardContent>
+
+                  <div className="px-5 pb-4 pt-0">
+                    <Link href={`/reports/${rep.report_number}`} className="block">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs gap-1.5 hover:bg-civic-slate-50"
+                      >
+                        <span>
+                          {locale === 'bn' ? 'বিস্তারিত তথ্য দেখুন' : 'View Case Dossier'}
+                        </span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+export default function PublicReportsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-slate-500">Loading reports registry...</div>}>
+      <ReportsContent />
+    </Suspense>
   );
 }

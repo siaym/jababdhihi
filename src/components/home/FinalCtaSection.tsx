@@ -10,7 +10,7 @@ export function FinalCtaSection() {
           {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/60 border border-red-800/40 text-[11px] font-bold uppercase tracking-widest text-red-300">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            <span>See Something That Needs Attention? · নাগরিক উদ্যোগ</span>
+            <span>Something happened that deserves attention?</span>
           </div>
 
           {/* Headline */}
@@ -25,11 +25,10 @@ export function FinalCtaSection() {
 
           {/* Description */}
           <p className="text-sm sm:text-base text-slate-300/85 leading-relaxed max-w-2xl mx-auto pt-1">
-            You can submit completely anonymously or choose to communicate with our verification team.
-            All metadata is scrubbed, evidence is secured with strict encryption, and no IP addresses are ever stored.
+            You can report anonymously, confidentially, or with your identity. Every submission is cryptographically isolated, all metadata is scrubbed, and no IP addresses are ever stored.
           </p>
 
-          {/* Action CTAs */}
+          {/* Action CTAs: One obvious primary action + secondary learning link */}
           <div className="pt-4 flex flex-wrap items-center justify-center gap-4">
             <Link href="/report">
               <button
@@ -37,7 +36,7 @@ export function FinalCtaSection() {
                 className="h-12 px-7 rounded-md bg-[#C62828] hover:bg-[#B71C1C] active:bg-[#8E1717] text-white text-sm font-bold flex items-center gap-2 shadow-lg shadow-red-950/50 transition-all hover:scale-[1.02]"
               >
                 <FileText className="w-4 h-4" />
-                <span>Submit a Report Now</span>
+                <span>Submit a Report →</span>
               </button>
             </Link>
 
@@ -46,7 +45,7 @@ export function FinalCtaSection() {
                 type="button"
                 className="h-12 px-6 rounded-md bg-transparent hover:bg-white/5 border border-white/25 hover:border-white/50 text-white text-sm font-medium flex items-center gap-2 transition-colors"
               >
-                <span>How Verification Works</span>
+                <span>Learn how reporting works →</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </Link>
