@@ -1,32 +1,79 @@
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Shield, Clock, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 
 export function AccountabilityDoctrineBanner({ className = '' }: { className?: string }) {
+  const steps = [
+    {
+      num: '01',
+      title: 'RECEIVED',
+      titleBn: 'জমা প্রাপ্ত',
+      desc: 'Cryptographic tracking key issued; EXIF/GPS scrubbed; zero IP address retention.',
+      badgeBorder: 'border-slate-300',
+      badgeBg: 'bg-slate-50',
+      badgeText: 'text-slate-700',
+      dotColor: 'bg-slate-400',
+    },
+    {
+      num: '02',
+      title: 'REVIEWED',
+      titleBn: 'পর্যালোচনা',
+      desc: 'Moderators evaluate public-interest merit, redact personal victim data, and inspect evidence.',
+      badgeBorder: 'border-amber-400',
+      badgeBg: 'bg-amber-50',
+      badgeText: 'text-amber-800',
+      dotColor: 'bg-amber-500',
+    },
+    {
+      num: '03',
+      title: 'VERIFIED',
+      titleBn: 'যাচাইকৃত',
+      desc: 'Corroborated by authentic audio, video, or official documentary verification standards.',
+      badgeBorder: 'border-emerald-500',
+      badgeBg: 'bg-emerald-50',
+      badgeText: 'text-emerald-800',
+      dotColor: 'bg-emerald-500',
+    },
+    {
+      num: '04',
+      title: 'REFERRED',
+      titleBn: 'নিষ্পত্তি ও প্রেরণ',
+      desc: 'Transmitted to official civic ombudsmen, legal aid, or preserved as public archive.',
+      badgeBorder: 'border-blue-500',
+      badgeBg: 'bg-blue-50',
+      badgeText: 'text-blue-800',
+      dotColor: 'bg-blue-500',
+    },
+  ];
+
   return (
     <section className={`max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 ${className}`}>
-      <div className="rounded-[14px] bg-white border border-[#E2E8F0] shadow-xl shadow-slate-900/5 overflow-hidden">
-        {/* Top Warning / Doctrine Header */}
-        <div className="p-5 sm:p-7 border-b border-[#F1F5F9] bg-[#FAFAF9]">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1.5 max-w-3xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-rose-50 text-[#C62828] border border-rose-200">
-                <Shield className="w-3 h-3 text-[#C62828]" />
-                <span>Civic Accountability Doctrine • আইনি ও নাগরিক মূলনীতি</span>
+      <div className="rounded-[16px] bg-white border border-[#E2E8F0] shadow-xl shadow-slate-900/5 overflow-hidden">
+        {/* Top Header */}
+        <div className="p-6 sm:p-8 lg:p-10 border-b border-[#F1F5F9] bg-[#FAFAF9]">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-2 max-w-3xl">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C62828]" />
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-[#C62828]">
+                  Our Approach · আমাদের পদ্ধতি
+                </span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-black text-[#111827] tracking-tight">
-                Reports are not verdicts. <span className="font-bengali font-bold text-lg sm:text-xl text-[#374151]">(প্রতিবেদন কখনোই চূড়ান্ত রায় নয়)</span>
+              <h2 className="text-2xl sm:text-3xl lg:text-[32px] font-black text-[#111827] tracking-tight leading-tight">
+                A report is a starting point — not a verdict.
               </h2>
-              <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed pt-0.5">
-                Every report submitted to Jababdihi is treated strictly as an unverified citizen allegation
-                until it has undergone systematic reviewer inspection and multi-source corroboration through
-                our published verification methodology. We do not pass judgment or operate as a social naming-and-shaming board.
+              <p className="font-bengali font-bold text-base sm:text-lg text-slate-500">
+                প্রতিবেদন একটি সূচনা — কখনোই চূড়ান্ত রায় নয়।
+              </p>
+              <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed pt-1 max-w-2xl">
+                Every report submitted to Jababdihi is treated strictly as an allegation until it has undergone
+                systematic reviewer inspection and multi-source corroboration through our published verification methodology.
               </p>
             </div>
 
             <Link
               href="/methodology"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#111827] hover:bg-black text-white text-xs font-semibold shrink-0 shadow-sm transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md bg-[#111827] hover:bg-black text-white text-xs font-semibold shrink-0 shadow-sm transition-colors"
             >
               <span>Our Methodology</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -34,66 +81,38 @@ export function AccountabilityDoctrineBanner({ className = '' }: { className?: s
           </div>
         </div>
 
-        {/* 4-Stage Lifecycle Stepper: Received -> Under Review -> Verified -> Resolved */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#F1F5F9] bg-white">
-          {/* Stage 1 */}
-          <div className="p-4 sm:p-5 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-slate-100 text-[#111827] text-[11px] font-bold flex items-center justify-center font-mono">
-                1
-              </span>
-              <h3 className="font-bold text-xs sm:text-[13px] text-[#111827]">
-                Received <span className="font-normal text-slate-500">(জমা প্রাপ্ত)</span>
-              </h3>
-            </div>
-            <p className="text-[11px] text-[#6B7280] leading-snug pl-7">
-              Cryptographic tracking key generated; EXIF/metadata scrubbed; zero IP address retention.
-            </p>
-          </div>
+        {/* Continuous Process Stepper with Horizontal Connecting Line */}
+        <div className="relative p-6 sm:p-8 lg:p-10 bg-white">
+          {/* Continuous line connecting the 4 stages on desktop */}
+          <div className="hidden md:block absolute top-[44px] lg:top-[48px] left-[8%] right-[8%] h-[2px] bg-slate-200 z-0" />
 
-          {/* Stage 2 */}
-          <div className="p-4 sm:p-5 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-900 text-[11px] font-bold flex items-center justify-center font-mono">
-                2
-              </span>
-              <h3 className="font-bold text-xs sm:text-[13px] text-[#111827]">
-                Under Review <span className="font-normal text-slate-500">(পর্যালোচনাধীন)</span>
-              </h3>
-            </div>
-            <p className="text-[11px] text-[#6B7280] leading-snug pl-7">
-              Trained moderators evaluate public-interest merit, redact personal victim data, and inspect evidence.
-            </p>
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
+            {steps.map((step) => (
+              <div key={step.num} className="flex flex-col items-start space-y-2.5">
+                {/* Number Circle Badge */}
+                <div
+                  className={`w-9 h-9 lg:w-10 lg:h-10 rounded-full border-2 ${step.badgeBorder} ${step.badgeBg} ${step.badgeText} flex items-center justify-center font-mono font-bold text-xs lg:text-sm shadow-sm`}
+                >
+                  {step.num}
+                </div>
 
-          {/* Stage 3 */}
-          <div className="p-4 sm:p-5 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-900 text-[11px] font-bold flex items-center justify-center font-mono">
-                3
-              </span>
-              <h3 className="font-bold text-xs sm:text-[13px] text-[#111827]">
-                Verified Finding <span className="font-normal text-slate-500">(যাচাইকৃত তথ্য)</span>
-              </h3>
-            </div>
-            <p className="text-[11px] text-[#6B7280] leading-snug pl-7">
-              Corroborated by authentic audio/video/documentary evidence according to strict verification standards.
-            </p>
-          </div>
+                {/* Title */}
+                <div>
+                  <h3 className="font-bold text-xs sm:text-sm text-[#111827] tracking-tight flex items-center gap-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${step.dotColor}`} />
+                    <span>{step.title}</span>
+                  </h3>
+                  <span className="text-[11px] text-slate-500 font-bengali">
+                    ({step.titleBn})
+                  </span>
+                </div>
 
-          {/* Stage 4 */}
-          <div className="p-4 sm:p-5 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-900 text-[11px] font-bold flex items-center justify-center font-mono">
-                4
-              </span>
-              <h3 className="font-bold text-xs sm:text-[13px] text-[#111827]">
-                Referred / Resolved <span className="font-normal text-slate-500">(নিষ্পত্তি)</span>
-              </h3>
-            </div>
-            <p className="text-[11px] text-[#6B7280] leading-snug pl-7">
-              Transmitted to official civic ombudsmen, legal aid, or archived as verified public disclosure.
-            </p>
+                {/* Description */}
+                <p className="text-xs text-[#64748B] leading-relaxed">
+                  {step.desc}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </div>

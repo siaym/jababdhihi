@@ -9,6 +9,7 @@ import { CategoryCard, CategoryCardData } from '@/components/home/CategoryCard';
 import { RecentReportsFloatingCard } from '@/components/home/RecentReportsFloatingCard';
 import { AccountabilityDoctrineBanner } from '@/components/home/AccountabilityDoctrineBanner';
 import { LatestReportsFeed } from '@/components/home/LatestReportsFeed';
+import { FinalCtaSection } from '@/components/home/FinalCtaSection';
 import {
   FileText,
   ArrowRight,
@@ -42,65 +43,92 @@ const HomeMapPanel = dynamic(
 const DEFAULT_CATEGORIES: CategoryCardData[] = [
   {
     id: 'c1',
+    index: '01',
     name: 'Corruption',
+    nameBn: 'দুর্নীতি ও ঘুষ',
     slug: 'corruption',
-    reportCount: 'Active',
+    description: 'Bribery demands, extortion, procurement fraud, and abuse of public resources.',
+    reportCount: 0,
     iconType: 'corruption',
   },
   {
     id: 'c2',
+    index: '02',
     name: 'Education',
+    nameBn: 'শিক্ষা ও ক্যাম্পাস',
     slug: 'education',
-    reportCount: 'Active',
+    description: 'University misconduct, dormitory ragging, illegal fees, and campus harassment.',
+    reportCount: 0,
     iconType: 'education',
   },
   {
     id: 'c3',
+    index: '03',
     name: 'Law Enforcement',
+    nameBn: 'পুলিশ ও আইনশৃঙ্খলা',
     slug: 'police',
-    reportCount: 'Active',
+    description: 'Unlawful custody, extortion, excessive force, or refusal to take official FIR/GD.',
+    reportCount: 0,
     iconType: 'law',
   },
   {
     id: 'c4',
+    index: '04',
     name: 'Public Services',
+    nameBn: 'সরকারি দপ্তর ও সেবা',
     slug: 'government',
-    reportCount: 'Active',
+    description: 'Administrative negligence, public utility bribery, and civil office harassment.',
+    reportCount: 0,
     iconType: 'services',
   },
   {
     id: 'c5',
+    index: '05',
     name: 'Infrastructure',
+    nameBn: 'সড়ক ও অবকাঠামো',
     slug: 'public_space',
-    reportCount: 'Active',
+    description: 'Dangerous road defects, unauthorized commercial encroachment, and contractor fraud.',
+    reportCount: 0,
     iconType: 'infrastructure',
   },
   {
     id: 'c6',
+    index: '06',
     name: 'Health',
+    nameBn: 'স্বাস্থ্য ও হাসপাতাল',
     slug: 'health',
-    reportCount: 'Active',
+    description: 'Government hospital medication withholding, illegal dispensary fees, and negligence.',
+    reportCount: 0,
     iconType: 'health',
   },
   {
     id: 'c7',
+    index: '07',
     name: 'Environment',
+    nameBn: 'পরিবেশ ও নদী দূষণ',
     slug: 'environment',
-    reportCount: 'Active',
+    description: 'Illegal river encroachment, industrial toxic dumping, and ecological violations.',
+    reportCount: 0,
     iconType: 'environment',
   },
   {
     id: 'c8',
+    index: '08',
     name: 'Workplace',
+    nameBn: 'কর্মক্ষেত্র ও শ্রম অধিকার',
     slug: 'workplace',
-    reportCount: 'Active',
+    description: 'Wage theft, unsafe labor conditions, abusive intimidation, and worker exploitation.',
+    reportCount: 0,
     iconType: 'workplace',
   },
   {
     id: 'c9',
+    index: '09',
     name: 'Others',
+    nameBn: 'অন্যান্য জনস্বার্থ বিষয়',
     slug: 'other',
-    reportCount: 'Active',
+    description: 'Other public-interest violations, consumer fraud, and community safety hazards.',
+    reportCount: 0,
     iconType: 'others',
   },
 ];
@@ -122,10 +150,10 @@ export default function HomePage() {
                   k.toLowerCase().includes(c.name.toLowerCase()) ||
                   c.name.toLowerCase().includes(k.toLowerCase())
               );
-              const count = matchKey ? byCat[matchKey] : 0;
+              const count = matchKey && typeof byCat[matchKey] === 'number' ? byCat[matchKey] : 0;
               return {
                 ...c,
-                reportCount: count > 0 ? String(count) : 'Active',
+                reportCount: count,
               };
             })
           );
@@ -262,23 +290,34 @@ export default function HomePage() {
       {/* ===================================================================
           3. CATEGORY SECTION ("Explore by Category")
          =================================================================== */}
-      <section id="categories" className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <section id="categories" className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
         {/* Section Header */}
-        <div className="flex items-center justify-between mb-4 sm:mb-5">
-          <h2 className="text-lg sm:text-xl font-bold text-[#111827] tracking-tight">
-            Explore by Category
-          </h2>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6 sm:mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C62828]" />
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-[#C62828]">
+                Civic Categories · ক্যাটাগরিভিত্তিক অনুসন্ধান
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-[#111827] tracking-tight">
+              Explore by Category
+            </h2>
+            <p className="text-xs sm:text-sm text-[#64748B] mt-1">
+              Documented public-interest issues organized by institutional sector.
+            </p>
+          </div>
           <Link
             href="/reports"
-            className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-[#111827] hover:text-[#C62828] transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#111827] hover:text-[#C62828] transition-colors"
           >
             <span>View All Categories</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        {/* 9 Category Cards Horizontal Grid with Restrained Civic Styling */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2.5 sm:gap-3">
+        {/* 9 Category Cards 3x3 Editorial Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {categories.map((cat) => (
             <CategoryCard key={cat.id} category={cat} />
           ))}
@@ -286,21 +325,27 @@ export default function HomePage() {
       </section>
 
       {/* ===================================================================
-          4. SPLIT SECTION: REPORTS ON MAP (LEFT) & LATEST REPORTS (RIGHT)
+          4. REPORTS ACROSS BANGLADESH SECTION (MAP + REGIONAL BREAKDOWN)
          =================================================================== */}
-      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column (5 of 12 cols): Reports on Map */}
-          <div className="lg:col-span-5">
-            <HomeMapPanel />
-          </div>
-
-          {/* Right Column (7 of 12 cols): Latest Reports */}
-          <div className="lg:col-span-7">
-            <LatestReportsFeed />
-          </div>
+      <section className="bg-slate-50/70 border-t border-slate-200/80 py-12 sm:py-16">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+          <HomeMapPanel />
         </div>
       </section>
+
+      {/* ===================================================================
+          5. LATEST REPORTS SECTION (STATUS-PROMINENT DOSSIERS)
+         =================================================================== */}
+      <section className="bg-white border-t border-slate-200/80 py-14 sm:py-16">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+          <LatestReportsFeed />
+        </div>
+      </section>
+
+      {/* ===================================================================
+          6. FINAL CALL TO ACTION (CIVIC ENGAGEMENT MOMENT)
+         =================================================================== */}
+      <FinalCtaSection />
     </div>
   );
 }
