@@ -12,6 +12,7 @@ import { StatusTimeline } from '@/components/ui/StatusTimeline';
 import { EvidenceCard } from '@/components/ui/EvidenceCard';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { trackReport, sendCaseMessage } from '@/services/reports';
+import { createClient } from '@/lib/supabase/client';
 import { Report, ReportStatusHistoryItem, EvidenceItem, CaseMessage } from '@/types';
 import { formatDate } from '@/lib/utils';
 import {
@@ -57,6 +58,44 @@ function TrackReportContent() {
       handleLookup(searchParams.get('number')!, searchParams.get('secret')!);
     }
   }, [searchParams]);
+
+  // Realtime subscription for incoming messages
+  useEffect(() => {
+    if (!caseData?.report?.id) return;
+
+    const supabase = createClient();
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel(`case-messages-${caseData.report.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'case_messages',
+          filter: `report_id=eq.${caseData.report.id}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as CaseMessage;
+          setCaseData((prev) => {
+            if (!prev) return null;
+            if (prev.messages.some((m) => m.id === newMsg.id)) {
+              return prev;
+            }
+            return {
+              ...prev,
+              messages: [...prev.messages, newMsg],
+            };
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [caseData?.report?.id]);
 
   const handleLookup = async (num = reportNumber, sec = trackingSecret) => {
     if (!num.trim() || !sec.trim()) {
