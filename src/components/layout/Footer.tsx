@@ -2,160 +2,130 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useI18n } from '@/lib/i18n';
-import { Shield, AlertCircle, Phone, Lock, FileText, CheckCircle } from 'lucide-react';
-import { EMERGENCY_HOTLINES } from '@/config/constants';
+import { Logo } from '@/components/ui/Logo';
+import { useI18n, Locale } from '@/lib/i18n';
+import { Lock, Globe } from 'lucide-react';
 
 export function Footer() {
-  const { locale, t } = useI18n();
+  const { locale, setLocale } = useI18n();
 
   return (
-    <footer className="bg-civic-navy text-white border-t border-civic-navyDark">
-      {/* Emergency Hotlines Strip */}
-      <div className="bg-civic-navyDark/80 border-b border-white/10 py-3 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 text-xs">
-          <div className="flex items-center gap-2 text-amber-300 font-medium">
-            <Phone className="w-4 h-4 shrink-0" />
-            <span>
-              {locale === 'bn'
-                ? 'জরুরি সহায়তা প্রয়োজন? টোল-ফ্রি জাতীয় হটলাইনসমূহে যোগাযোগ করুন:'
-                : 'Need immediate emergency assistance? Official toll-free hotlines:'}
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4 text-xs">
-            {EMERGENCY_HOTLINES.slice(0, 4).map((hl) => (
-              <span key={hl.number} className="inline-flex items-center gap-1.5">
-                <span className="text-white/70">
-                  {locale === 'bn' ? hl.name_bn : hl.name_en}:
-                </span>
-                <span className="font-bold text-emerald-400 bg-white/10 px-1.5 py-0.5 rounded">
-                  {hl.number}
-                </span>
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <footer className="bg-white border-t border-[#E5E7EB] text-[#374151]">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Brand & Purpose */}
-          <div className="md:col-span-1 space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-emerald-600 flex items-center justify-center text-white">
-                <Shield className="w-4 h-4" />
-              </div>
-              <span className="font-bold text-base tracking-tight">
-                {t('nav.title')}
-              </span>
-            </div>
-            <p className="text-xs text-white/70 leading-relaxed">
-              {locale === 'bn'
-                ? 'একটি নিরপেক্ষ, নিরাপদ ও প্রমাণভিত্তিক নাগরিক পর্যবেক্ষণ প্ল্যাটফর্ম। নাগরিকদের হয়রানি, দুর্নীতি ও ক্ষমতার অপব্যবহার নথিভুক্ত করতে সহায়তা করে।'
-                : 'A secure, non-partisan, evidence-based civic platform empowering citizens to document abuse, corruption, and institutional violations.'}
+          {/* Brand & Mission Column */}
+          <div className="space-y-3.5 md:col-span-1">
+            <Logo size="md" href="/" />
+            <p className="text-xs text-[#6B7280] leading-relaxed max-w-sm">
+              Jababdihi is a citizen-powered platform for reporting, verifying, and documenting
+              public misconduct, corruption, and safety hazards across Bangladesh.
             </p>
-            <div className="pt-2 text-xs text-emerald-400 font-medium flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" />
-              <span>REPORT • REVIEW • VERIFY • REFER</span>
+            <div className="flex items-center gap-1.5 text-xs text-[#059669] font-medium pt-1">
+              <Lock className="w-3.5 h-3.5 text-[#059669]" />
+              <span>TLS 1.3 & Zero-IP Anonymous Reporting</span>
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Column 1: Platform */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-white/80">
-              {locale === 'bn' ? 'প্ল্যাটফর্ম লিংক' : 'Platform Navigation'}
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#111827]">
+              Platform
             </h4>
-            <ul className="space-y-2 text-xs text-white/70">
+            <ul className="space-y-2 text-xs text-[#4B5563]">
               <li>
-                <Link href="/reports" className="hover:text-white transition-colors">
-                  {t('nav.reports')}
+                <Link href="/reports" className="hover:text-[#C62828] transition-colors">
+                  Public Reports
                 </Link>
               </li>
               <li>
-                <Link href="/map" className="hover:text-white transition-colors">
-                  {t('nav.map')}
+                <Link href="/map" className="hover:text-[#C62828] transition-colors">
+                  Reports on Map
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard" className="hover:text-white transition-colors">
-                  {t('nav.dashboard')}
+                <Link href="/#categories" className="hover:text-[#C62828] transition-colors">
+                  Categories
                 </Link>
               </li>
               <li>
-                <Link href="/organizations" className="hover:text-white transition-colors">
-                  {t('nav.organizations')}
+                <Link href="/how-it-works" className="hover:text-[#C62828] transition-colors">
+                  How It Works
                 </Link>
               </li>
               <li>
-                <Link href="/track" className="hover:text-white transition-colors">
-                  {t('nav.track')}
+                <Link href="/track" className="hover:text-[#C62828] transition-colors">
+                  Track Your Report
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Standards & Guidelines */}
+          {/* Column 2: Resources & Safety */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-white/80">
-              {locale === 'bn' ? 'পদ্ধতি ও সুরক্ষা' : 'Methodology & Safety'}
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#111827]">
+              Guidelines & Safety
             </h4>
-            <ul className="space-y-2 text-xs text-white/70">
+            <ul className="space-y-2 text-xs text-[#4B5563]">
               <li>
-                <Link href="/how-it-works" className="hover:text-white transition-colors">
-                  {t('nav.howItWorks')}
+                <Link href="/safety" className="hover:text-[#C62828] transition-colors">
+                  Personal Safety Center
                 </Link>
               </li>
               <li>
-                <Link href="/methodology" className="hover:text-white transition-colors">
-                  {t('nav.methodology')}
+                <Link href="/methodology" className="hover:text-[#C62828] transition-colors">
+                  Evidentiary Methodology
                 </Link>
               </li>
               <li>
-                <Link href="/safety" className="hover:text-white transition-colors">
-                  {t('nav.safety')}
+                <Link href="/resources" className="hover:text-[#C62828] transition-colors">
+                  Emergency Hotlines (999, 109)
                 </Link>
               </li>
               <li>
-                <Link href="/resources" className="hover:text-white transition-colors">
-                  {t('nav.resources')}
+                <Link href="/organizations" className="hover:text-[#C62828] transition-colors">
+                  Institutional Directory
                 </Link>
               </li>
               <li>
-                <Link href="/admin" className="hover:text-white transition-colors">
-                  Reviewer Workspace
+                <Link href="/dashboard" className="hover:text-[#C62828] transition-colors">
+                  Public Analytics
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Civic Principles & Legal Disclaimers */}
+          {/* Column 3: Legal & Governance */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-white/80">
-              {locale === 'bn' ? 'আইনি ও নৈতিক নীতি' : 'Civic & Legal Principles'}
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#111827]">
+              Governance & Disclaimer
             </h4>
-            <div className="p-3 bg-white/5 rounded border border-white/10 space-y-2 text-[11px] text-white/70 leading-relaxed">
-              <div className="flex items-center gap-1.5 text-amber-300 font-semibold">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                <span>
-                  {locale === 'bn' ? 'অভিযোগ বনাম প্রমাণ' : 'Allegation vs Proof'}
-                </span>
-              </div>
-              <p>
-                {t('footer.disclaimer')}
-              </p>
+            <p className="text-xs text-[#6B7280] leading-relaxed">
+              Every report on Jababdihi represents an allegation until independently verified according
+              to published methodology. Target institutions are afforded an official right of reply.
+            </p>
+            <div className="pt-1">
+              <Link
+                href="/admin"
+                className="inline-block text-xs font-semibold text-[#111827] hover:text-[#C62828]"
+              >
+                Reviewer & Moderator Portal →
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* Bottom copyright */}
-        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-xs text-white/50 gap-4">
-          <p>{t('footer.copyright')}</p>
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <Lock className="w-3 h-3 text-emerald-400" />
-              <span>TLS 1.3 & Zero-IP Anonymous Architecture</span>
-            </span>
+        {/* Bottom Bar */}
+        <div className="mt-12 pt-6 border-t border-[#E5E7EB] flex flex-col sm:flex-row items-center justify-between text-xs text-[#6B7280] gap-4">
+          <p>© 2026 Jababdihi (জবাবদিহি). Bangladesh. All rights reserved.</p>
+
+          <div className="flex items-center gap-3">
+            <Globe className="w-3.5 h-3.5 text-[#9CA3AF]" />
+            <button
+              onClick={() => setLocale(locale === 'bn' ? 'en' : 'bn')}
+              className="hover:text-[#111827] font-medium"
+            >
+              {locale === 'bn' ? 'English Language' : 'বাংলা সংস্করণ'}
+            </button>
           </div>
         </div>
       </div>

@@ -5,15 +5,16 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
-  title: 'Bangladesh Civic Reporting Platform | বাংলাদেশ নাগরিক প্ল্যাটফর্ম',
+  title: 'Jababdihi | জবাবদিহি — A More Accountable Bangladesh Together',
   description:
-    'A secure, evidence-based civic platform for documenting abuse, misconduct, corruption, and institutional violations in Bangladesh. Report securely, anonymously, and transparently.',
+    'A people-powered civic platform to document and raise awareness about abuse, corruption, misconduct, and public-interest issues across Bangladesh.',
   keywords: [
+    'Jababdihi',
+    'জবাবদিহি',
     'Bangladesh civic reporting',
     'police misconduct Bangladesh',
     'corruption reporting BD',
-    'abuse prevention Bangladesh',
-    'citizen incident documentation',
+    'public accountability Bangladesh',
   ],
 };
 
@@ -23,9 +24,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="bn">
-      <body className="min-h-screen flex flex-col bg-civic-slate-50 text-civic-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
-        <I18nProvider defaultLocale="bn">
+    <html lang="en">
+      <body className="min-h-screen flex flex-col bg-[#F8F7F3] text-[#111827] selection:bg-[#FFEBEE] selection:text-[#C62828]">
+        <I18nProvider defaultLocale="en">
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />

@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.3.0-alpha] - 2026-10-07
+
+### Added
+- Re-architected visual identity and layout to faithfully reproduce the provided **Jababdihi (জবাবদিহি)** reference design.
+- Custom vector `Logo` component integrating red sun, monument architecture, and bilingual typography.
+- Exact 74px white navigation bar with logo, centered nav links, search input, language dropdown, login link, and red `#C62828` "Submit Report" CTA.
+- 520px high-contrast photographic hero section with authentic Bangladesh civic crowd imagery and dark vignette.
+- Floating dark translucent `RecentReportsFloatingCard` on the hero with 5 distinct categorized incident previews.
+- 9-item `Explore by Category` card grid with custom color-coded category icons and report counts.
+- Side-by-side bottom split featuring `Reports on Map` with aggregated cluster markers (12, 34, 5, 8) and `Latest Reports` tabbed feed with thumbnail cards.
+- Added `docs/EXTERNAL_LINKS.md` and `docs/ROUTES.md`.
+
 ## [0.2.0-alpha] - 2026-10-07
 
 ### Added

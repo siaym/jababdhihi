@@ -3,194 +3,201 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Logo } from '@/components/ui/Logo';
 import { useI18n, Locale } from '@/lib/i18n';
-import { Button } from '@/components/ui/Button';
 import {
-  Shield,
+  Search,
+  Globe,
+  ChevronDown,
   Menu,
   X,
-  Languages,
-  PlusCircle,
-  Search,
-  MapPin,
-  BarChart3,
-  Building,
-  HelpCircle,
-  Lock,
+  FileText,
 } from 'lucide-react';
 
 export function Header() {
-  const { locale, setLocale, t } = useI18n();
+  const { locale, setLocale } = useI18n();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const [navSearchQuery, setNavSearchQuery] = useState('');
   const pathname = usePathname();
 
   const navLinks = [
-    { href: '/reports', label: t('nav.reports'), icon: Search },
-    { href: '/map', label: t('nav.map'), icon: MapPin },
-    { href: '/dashboard', label: t('nav.dashboard'), icon: BarChart3 },
-    { href: '/organizations', label: t('nav.organizations'), icon: Building },
-    { href: '/resources', label: t('nav.resources'), icon: HelpCircle },
-    { href: '/how-it-works', label: t('nav.howItWorks'), icon: HelpCircle },
+    { href: '/', label: 'Home' },
+    { href: '/reports', label: 'Reports' },
+    { href: '/map', label: 'Map' },
+    { href: '/#categories', label: 'Categories' },
+    { href: '/how-it-works', label: 'How It Works' },
+    { href: '/methodology', label: 'About' },
   ];
 
-  const toggleLanguage = () => {
-    const next: Locale = locale === 'bn' ? 'en' : 'bn';
-    setLocale(next);
+  const handleLanguageSelect = (newLoc: Locale) => {
+    setLocale(newLoc);
+    setLangDropdownOpen(false);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (navSearchQuery.trim()) {
+      window.location.href = `/reports?searchQuery=${encodeURIComponent(navSearchQuery.trim())}`;
+    }
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-civic-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between gap-4">
-          {/* Logo & Brand Identity */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-lg bg-civic-navy text-white flex items-center justify-center shadow-sm group-hover:bg-civic-navyDark transition-colors">
-              <Shield className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <div className="font-bold text-base md:text-lg leading-tight text-civic-navy">
-                {t('nav.title')}
-              </div>
-              <div className="text-[11px] text-civic-slate-500 font-medium hidden sm:block">
-                {t('nav.subtitle')}
-              </div>
-            </div>
-          </Link>
+    <header className="sticky top-0 z-50 w-full h-[74px] bg-white border-b border-[#E5E7EB]">
+      <div className="max-w-[1440px] mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+        {/* 1. LOGO ON THE FAR LEFT */}
+        <div className="shrink-0">
+          <Logo size="md" href="/" />
+        </div>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    isActive
-                      ? 'text-civic-navy bg-civic-slate-100 font-semibold'
-                      : 'text-civic-slate-600 hover:text-civic-navy hover:bg-civic-slate-50'
+        {/* 2. NAVIGATION IN THE CENTER (DESKTOP) */}
+        <nav className="hidden lg:flex items-center space-x-6 xl:space-x-8 text-[15px] font-medium text-[#111827]">
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <Link
+                key={link.label}
+                href={link.href}
+                className={`transition-colors hover:text-[#C62828] ${
+                  isActive ? 'text-[#C62828] font-semibold' : 'text-[#374151]'
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* 3. SEARCH & CONTROLS ON THE RIGHT */}
+        <div className="hidden md:flex items-center gap-3.5 xl:gap-4 shrink-0">
+          {/* Search Input Bar */}
+          <form onSubmit={handleSearchSubmit} className="relative w-56 lg:w-64 xl:w-72">
+            <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={navSearchQuery}
+              onChange={(e) => setNavSearchQuery(e.target.value)}
+              placeholder="Search reports, locations, keywords..."
+              className="w-full h-9 pl-9 pr-3 rounded-md bg-[#F3F4F6] text-xs text-[#111827] placeholder:text-[#6B7280] border border-transparent focus:bg-white focus:border-[#D1D5DB] focus:outline-none transition-all"
+            />
+          </form>
+
+          {/* Language Selector Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[#374151] hover:text-[#111827] rounded-md transition-colors"
+            >
+              <Globe className="w-4 h-4 text-[#6B7280]" />
+              <span>{locale === 'bn' ? 'বাংলা' : 'EN'}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-[#9CA3AF]" />
+            </button>
+
+            {langDropdownOpen && (
+              <div className="absolute right-0 mt-1.5 w-28 bg-white border border-[#E5E7EB] rounded-md shadow-lg py-1 z-50 text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleLanguageSelect('en')}
+                  className={`w-full text-left px-3 py-1.5 hover:bg-[#F3F4F6] transition-colors ${
+                    locale === 'en' ? 'font-bold text-[#C62828]' : 'text-[#374151]'
                   }`}
                 >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Right Action Bar */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Track Report link */}
-            <Link
-              href="/track"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-civic-slate-700 hover:text-civic-navy border border-civic-slate-200 rounded-md hover:bg-civic-slate-50 transition-colors"
-            >
-              <Lock className="w-3.5 h-3.5 text-civic-slate-500" />
-              <span>{t('nav.track')}</span>
-            </Link>
-
-            {/* Language Switcher */}
-            <button
-              onClick={toggleLanguage}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-md border border-civic-slate-200 text-civic-slate-700 hover:bg-civic-slate-50 transition-colors"
-              title="Toggle Language / ভাষা পরিবর্তন"
-            >
-              <Languages className="w-3.5 h-3.5 text-civic-slate-500" />
-              <span>{locale === 'bn' ? 'English' : 'বাংলা'}</span>
-            </button>
-
-            {/* Primary CTA: Report an Incident */}
-            <Link href="/report">
-              <Button
-                variant="primary"
-                size="sm"
-                className="font-medium bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm flex items-center gap-1.5"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span className="whitespace-nowrap">{t('nav.reportCta')}</span>
-              </Button>
-            </Link>
-
-            {/* Mobile Menu Toggle Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-md text-civic-slate-600 hover:bg-civic-slate-100 focus:outline-none"
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
-            </button>
+                  English
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleLanguageSelect('bn')}
+                  className={`w-full text-left px-3 py-1.5 hover:bg-[#F3F4F6] transition-colors ${
+                    locale === 'bn' ? 'font-bold text-[#C62828]' : 'text-[#374151]'
+                  }`}
+                >
+                  বাংলা
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* Log In Link */}
+          <Link
+            href="/admin"
+            className="text-xs font-semibold text-[#374151] hover:text-[#111827] px-2 py-1.5 transition-colors"
+          >
+            Log In
+          </Link>
+
+          {/* Red Submit Report Button */}
+          <Link href="/report">
+            <button
+              type="button"
+              className="h-10 px-4 rounded-md bg-[#C62828] hover:bg-[#B71C1C] active:bg-[#991B1B] text-white text-xs font-bold tracking-tight shadow-sm transition-colors whitespace-nowrap"
+            >
+              Submit Report
+            </button>
+          </Link>
+        </div>
+
+        {/* Mobile Controls */}
+        <div className="flex md:hidden items-center gap-2">
+          <Link href="/report">
+            <button
+              type="button"
+              className="h-8 px-3 rounded-md bg-[#C62828] text-white text-xs font-bold whitespace-nowrap"
+            >
+              Report
+            </button>
+          </Link>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 text-[#374151] hover:text-[#111827]"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-civic-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-lg">
-          <div className="grid grid-cols-2 gap-2">
-            <Link
-              href="/report"
-              onClick={() => setMobileMenuOpen(false)}
-              className="col-span-2"
-            >
-              <Button
-                variant="primary"
-                size="md"
-                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white flex items-center justify-center gap-2"
+        <div className="md:hidden border-t border-[#E5E7EB] bg-white px-4 py-4 space-y-3 shadow-xl">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={navSearchQuery}
+              onChange={(e) => setNavSearchQuery(e.target.value)}
+              placeholder="Search reports, locations, keywords..."
+              className="w-full h-9 pl-9 pr-3 rounded-md bg-[#F3F4F6] text-xs"
+            />
+          </form>
+
+          <div className="flex flex-col space-y-2 pt-2 border-t border-[#E5E7EB]">
+            {navLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-1.5 text-sm font-medium text-[#374151] hover:text-[#C62828]"
               >
-                <PlusCircle className="w-4 h-4" />
-                <span>{t('nav.reportCta')}</span>
-              </Button>
-            </Link>
-            <Link
-              href="/track"
-              onClick={() => setMobileMenuOpen(false)}
-              className="col-span-2"
-            >
-              <Button
-                variant="outline"
-                size="md"
-                className="w-full flex items-center justify-center gap-2 text-xs"
-              >
-                <Lock className="w-4 h-4" />
-                <span>{t('nav.track')}</span>
-              </Button>
-            </Link>
+                {link.label}
+              </Link>
+            ))}
           </div>
 
-          <div className="border-t border-civic-slate-100 pt-2 space-y-1">
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-civic-slate-700 hover:bg-civic-slate-50"
-                >
-                  <Icon className="w-4 h-4 text-civic-slate-400" />
-                  <span>{link.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="border-t border-civic-slate-100 pt-3 flex justify-between items-center text-xs text-civic-slate-500">
+          <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between text-xs">
+            <button
+              onClick={() => handleLanguageSelect(locale === 'bn' ? 'en' : 'bn')}
+              className="font-medium text-[#C62828]"
+            >
+              {locale === 'bn' ? 'Switch to English' : 'বাংলায় দেখুন'}
+            </button>
             <Link
               href="/admin"
               onClick={() => setMobileMenuOpen(false)}
-              className="hover:underline text-civic-navy font-medium"
+              className="font-semibold text-[#111827]"
             >
-              Reviewer Portal
+              Log In (Reviewer Portal)
             </Link>
-            <button
-              onClick={toggleLanguage}
-              className="font-medium text-civic-navy"
-            >
-              Switch to {locale === 'bn' ? 'English' : 'বাংলা'}
-            </button>
           </div>
         </div>
       )}
