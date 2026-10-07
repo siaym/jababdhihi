@@ -100,6 +100,7 @@ export interface EvidenceItem {
   review_state: EvidenceReviewState;
   caption?: string;
   moderator_notes?: string;
+  warning_notice?: string;
   created_at: string;
 }
 

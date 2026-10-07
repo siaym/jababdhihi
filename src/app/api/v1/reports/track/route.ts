@@ -2,9 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { trackReport as trackInMemory } from '@/services/reports';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = getClientIp(req);
+
+    // Rate Limiting: protect against brute-force passkey guessing
+    const rateCheck = checkRateLimit('report-track', clientIp);
+    if (!rateCheck.isAllowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: `Too many tracking attempts. Please wait ${rateCheck.resetSeconds} seconds.`,
+            retryAfterSeconds: rateCheck.resetSeconds,
+          },
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateCheck.resetSeconds),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const { report_number, tracking_secret } = body;
 

@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeExternalUrl } from '@/services/evidence';
+import { validateSafeUrl } from '@/lib/security/ssrf';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = getClientIp(req);
+
+    // Rate Limiting check
+    const rateCheck = checkRateLimit('public-api', clientIp);
+    if (!rateCheck.isAllowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: `Too many requests. Please wait ${rateCheck.resetSeconds} seconds.`,
+          },
+        },
+        { status: 429, headers: { 'Retry-After': String(rateCheck.resetSeconds) } }
+      );
+    }
+
     const body = await req.json();
     const { url } = body;
 
@@ -13,6 +32,21 @@ export async function POST(req: NextRequest) {
           error: {
             code: 'VALIDATION_ERROR',
             message: 'A valid URL string is required',
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    // SSRF & Protocol Safety Check
+    const safety = validateSafeUrl(url);
+    if (!safety.isValid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'PROHIBITED_URL',
+            message: safety.error || 'Prohibited URL format or destination.',
           },
         },
         { status: 400 }

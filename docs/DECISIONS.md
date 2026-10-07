@@ -115,3 +115,34 @@ Use **Supabase** as the exclusive primary backend platform for Jababdihi:
 
 ### Date
 2026-10-07
+
+---
+
+## ADR-007 — Defense-in-Depth Against Coordinated Attacks, Mobile Web Vitals & Safe Mode Architecture
+
+### Context
+Jababdihi is a public-interest reporting platform handling sensitive allegations in Bangladesh. Hostile actors (perpetrators, trolls, botnets, or state surveillance) may attempt DDoS floods, automated spam submissions, scraper extraction of the report catalog, malicious file uploads (executables/malware/SVG XSS), or credential takeovers. Simultaneously, the platform serves citizens predominantly on budget Android devices and variable 4G/3G connectivity across Bangladesh.
+
+### Decision
+1. **Target Mobile Performance & Core Web Vitals:**
+   - Enforce Mobile Lighthouse ≥90, Desktop ≥95.
+   - Core Web Vitals: FCP < 1.5s, LCP < 2.5s, INP < 200ms, CLS < 0.1.
+   - Lazy load heavy client elements (`HomeMapPanel`, `LatestReportsFeed`) with Next.js dynamic imports and lightweight skeletons.
+   - Implement Click-to-Play video facades for YouTube/Drive embeds in `EvidenceCard` (thumbnail poster + play icon; only load iframe upon click).
+   - Responsive Next.js Image optimization with responsive `sizes` and modern WebP/AVIF formats.
+2. **Defensive Layering (Vercel + Next.js + Supabase):**
+   - Vercel Edge / CDN: DDoS filtering, edge rate-limiting, and Bot WAF rules.
+   - Next.js Application: Sliding window multi-tier rate limiting (`src/lib/security/rate-limit.ts`), SSRF URL allowlisting (`src/lib/security/ssrf.ts`), file extension & magic-byte validation (`src/lib/security/file-validation.ts`), bounded public queries (`limit <= 50`), and edge caching headers.
+   - Supabase: Segregated storage buckets (`report-evidence-private`, `report-evidence-public`, `report-thumbnails`), PostgreSQL RLS, and MFA enforcement on privileged reviewer/admin roles.
+3. **Emergency Defensive Safe Mode (`src/lib/security/safe-mode.ts`):**
+   - Provide an admin-toggled defensive state that can temporarily pause anonymous submissions, disable direct file uploads, enforce CAPTCHA, and tighten rate limits 4x while keeping public report browsing and case tracking 100% online.
+4. **Resilient Local Draft Storage & Offline Handling:**
+   - Implement client-side `localStorage` draft auto-save and offline detection in the 5-step reporting wizard, allowing citizens to preserve written testimony during spotty cellular coverage and resume seamlessly.
+
+### Consequences & Trade-offs
+- **Positives:** Immune to single points of failure under coordinated traffic attacks; ensures sub-2.5s LCP on budget smartphones across Bangladesh; eliminates accidental SSRF or malicious script uploads.
+- **Trade-offs:** Requires careful maintenance of rate limit tier windows and bucket storage policies.
+
+### Date
+2026-10-07
+

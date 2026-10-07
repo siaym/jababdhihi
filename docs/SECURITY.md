@@ -116,3 +116,95 @@ X-Frame-Options: SAMEORIGIN
 Referrer-Policy: strict-origin-when-cross-origin
 Permissions-Policy: camera=(), microphone=(), geolocation=()
 ```
+
+---
+
+## 7. Defense Against Coordinated Attacks
+
+Jababdihi assumes hostile state or non-state actors will attempt to disrupt operations:
+
+```text
+INTERNET
+   │
+   ▼
+┌──────────────────┐
+│ Vercel CDN / WAF │   DDoS mitigation, IP rate-limiting, Bot protection
+└────────┬─────────┘
+   │
+   ▼
+┌──────────────────┐
+│ Next.js App /    │   Application rate limiting, Zod schema validation,
+│ Edge Cache       │   SSRF allowlisting, Safe Mode enforcement
+└────────┬─────────┘
+   │
+   ▼
+┌──────────────────┐
+│ Supabase DB &    │   PostgreSQL Row-Level Security (RLS), multi-bucket storage
+│ Storage Vault    │   isolation, immutable audit triggers, MFA admin access
+└──────────────────┘
+```
+
+1. **DDoS & Scraping Floods:**
+   - Mitigated via Vercel WAF edge filtering and Next.js edge caching (`s-maxage=60, stale-while-revalidate=120`).
+   - Public queries strictly enforce maximum page bounds (`limit <= 50`) and non-sequential IDs (`BD-YYYY-NNNNNN`).
+2. **Spam & Bot Floods:**
+   - Multi-tier sliding window rate limits.
+   - Bot challenge integration capability for suspicious traffic spikes.
+3. **Privileged Credential Compromise:**
+   - Never expose Supabase service-role keys to client JavaScript or browser contexts.
+   - Enforce Multi-Factor Authentication (MFA) on all Reviewer and Admin accounts.
+   - Granular RBAC (`reviewer`, `senior_reviewer`, `admin`, `super_admin`).
+
+---
+
+## 8. Multi-Tier Application Rate Limiting
+
+Configured in `src/lib/security/rate-limit.ts`:
+
+| Action Tier | Threshold | Sliding Window | Target Purpose |
+| :--- | :--- | :--- | :--- |
+| **`report-submit`** | 5 submissions | 1 hour / IP | Prevents automated flood spamming |
+| **`report-track`** | 15 queries | 15 minutes / IP | Thwarts brute-force guessing of tracking secrets |
+| **`evidence-upload`** | 10 tickets | 1 hour / IP | Prevents storage exhaustion and ticket flooding |
+| **`case-messages`** | 20 messages | 1 hour / IP | Protects case reviewers from chat spam |
+| **`public-api`** | 60 requests | 1 minute / IP | Thwarts aggressive public scraping |
+
+---
+
+## 9. Emergency Defensive Safe Mode Engine
+
+Implemented in `src/lib/security/safe-mode.ts` and managed via `/admin`:
+
+- **Purpose:** Enables rapid operational degradation under active attack without taking public accountability offline.
+- **Capabilities in Safe Mode:**
+  1. Temporarily restricts anonymous submissions while preserving confidential/identified reporting.
+  2. Enforces CAPTCHA / proof-of-work challenges.
+  3. Pauses direct file uploads to protect storage quotas while allowing external YouTube/Drive links.
+  4. Heightens rate limits by 4x.
+  5. Serves aggressively cached public report listings.
+  6. Keeps public tracking portal 100% operational for existing cases.
+
+---
+
+## 10. Multi-Bucket Storage Isolation
+
+Three segregated Supabase Storage buckets:
+
+1. **`report-evidence-private`:**
+   - **Access:** Strictly private. No public URL generation.
+   - **Access Mechanism:** Short-lived signed download URLs (900s TTL) issued strictly to authenticated reviewers or verified reporters.
+2. **`report-evidence-public`:**
+   - **Access:** Public read for reviewed and approved evidentiary items.
+   - **Modification:** Restricted to Senior Reviewers via RLS.
+3. **`report-thumbnails`:**
+   - **Access:** Public read for optimized, resized visual badges.
+
+---
+
+## 11. Mobile Resilience & Offline Draft Protocol
+
+- **Lighthouse Targets:** Mobile Performance ≥90, Desktop ≥95.
+- **Core Web Vitals:** FCP < 1.5s, LCP < 2.5s, INP < 200ms, CLS < 0.1.
+- **Click-to-Play Video Facade:** YouTube iframes are not mounted until the user taps the poster thumbnail, saving ~1MB of JS per card.
+- **Local Safe Draft:** Unsubmitted report drafts are preserved locally in browser `localStorage` (`jababdihi_report_draft_v1`), protecting citizens from losing information during network dropouts. Drafts are automatically purged upon successful submission.
+

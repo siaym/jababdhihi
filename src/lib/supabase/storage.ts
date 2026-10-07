@@ -1,6 +1,12 @@
 import { createAdminClient } from './admin';
 
-export const EVIDENCE_BUCKET = 'evidence-vault';
+export const STORAGE_BUCKETS = {
+  PRIVATE_EVIDENCE: 'report-evidence-private',
+  PUBLIC_EVIDENCE: 'report-evidence-public',
+  THUMBNAILS: 'report-thumbnails',
+} as const;
+
+export const EVIDENCE_BUCKET = STORAGE_BUCKETS.PRIVATE_EVIDENCE;
 
 export interface UploadTicket {
   uploadUrl: string;
@@ -10,7 +16,7 @@ export interface UploadTicket {
 
 /**
  * Generate a pre-signed PUT upload URL for direct streaming to private Supabase Storage.
- * The file is placed in `cases/{reportId}/{uuid}.{ext}`.
+ * The file is placed in `cases/{reportId}/{uuid}.{ext}` in the private evidence bucket.
  */
 export async function createEvidenceUploadTicket(
   reportId: string,
@@ -33,7 +39,7 @@ export async function createEvidenceUploadTicket(
 
   // Pre-signed upload URL valid for 300 seconds (5 minutes)
   const { data, error } = await admin.storage
-    .from(EVIDENCE_BUCKET)
+    .from(STORAGE_BUCKETS.PRIVATE_EVIDENCE)
     .createSignedUploadUrl(storagePath);
 
   if (error || !data) {
@@ -62,7 +68,7 @@ export async function getSignedEvidenceViewUrl(
   }
 
   const { data, error } = await admin.storage
-    .from(EVIDENCE_BUCKET)
+    .from(STORAGE_BUCKETS.PRIVATE_EVIDENCE)
     .createSignedUrl(storagePath, expiresInSeconds);
 
   if (error || !data) {

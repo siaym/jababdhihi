@@ -1,14 +1,17 @@
-CURRENT PROJECT STATUS: SUPABASE BACKEND ARCHITECTURE & EXACT UI COMPLETED  
-VERSION: 0.3.1-alpha  
+CURRENT PROJECT STATUS: DEFENSE-IN-DEPTH ATTACK RESILIENCE & MOBILE PERFORMANCE COMPLETED  
+VERSION: 0.4.0-alpha  
 LAST UPDATED: 2026-10-07  
-CURRENT PHASE: SUPABASE BACKEND INTEGRATION & EXACT UI FIDELITY  
-LAST COMPLETED TASK: Implemented custom Jababdihi logo, 74px navbar, photographic hero with dark vignette, floating Recent Reports panel, 9-item category grid, side-by-side map & latest reports split matching reference image, and full Supabase client/server/admin/storage integration layer  
-CURRENT TASK: Finalized ADR-006 and Supabase storage bucket policies  
-NEXT RECOMMENDED TASK: Phase 6 Communication & Live Database Synchronization (running supabase db push on remote Supabase instance)
+CURRENT PHASE: SYSTEM RESILIENCE, DEFENSIVE SAFE MODE & MOBILE CORE WEB VITALS  
+LAST COMPLETED TASK: Integrated multi-tier sliding window rate limiting, SSRF guard, file upload magic-byte security, 3-bucket storage isolation, emergency Safe Mode engine, click-to-play video facade, responsive Next.js Image hero, offline detection, and local draft recovery (ADR-007)  
+CURRENT TASK: Verified 18 unit tests passing (100%) and clean production build  
+NEXT RECOMMENDED TASK: Phase 6 Production Deployment & Live Supabase Synchronization
 
 ---
 > ⚠️ **MANDATORY BACKEND DIRECTIVE:**  
 > **Backend requirement: Use Supabase as the primary backend platform. Use Supabase PostgreSQL for the database, Supabase Auth for authentication, Supabase Storage for uploaded evidence, and Supabase Row Level Security for authorization/data protection. Do not introduce another backend service unless there is a documented technical reason and the decision is recorded in `docs/DECISIONS.md`.**
+
+> 🛡️ **MANDATORY SECURITY & PERFORMANCE DIRECTIVE:**  
+> **Jababdihi is a potentially high-risk civic platform. Assume hostile actors will attempt DDoS, spam submissions, scrape reports, upload malicious files, compromise accounts, abuse external URLs, or exploit APIs. Security, availability, and abuse resistance are first-class requirements. Target Lighthouse Performance ≥90 on mobile, Core Web Vitals within thresholds (LCP < 2.5s, FCP < 1.5s), lazy-load maps and external embeds, optimize images, cache public content, and ensure the reporting flow remains resilient on spotty Bangladesh mobile networks.**
 ---
 
 ## 1. What the Project Is

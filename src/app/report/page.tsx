@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
@@ -30,6 +30,9 @@ import {
   Eye,
   FileText,
   Video,
+  Save,
+  WifiOff,
+  RotateCcw,
 } from 'lucide-react';
 
 export default function ReportWizardPage() {
@@ -77,6 +80,98 @@ export default function ReportWizardPage() {
     reportId: string;
   } | null>(null);
   const [copiedSecret, setCopiedSecret] = useState<boolean>(false);
+
+  // Offline & Temporary Safe Draft Handling
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [draftFound, setDraftFound] = useState<boolean>(false);
+  const [draftSavedNotice, setDraftSavedNotice] = useState<string>('');
+  const DRAFT_KEY = 'jababdihi_report_draft_v1';
+
+  useEffect(() => {
+    setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Check for existing draft on device
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.description || parsed.categoryId || parsed.customOrgName)) {
+          setDraftFound(true);
+        }
+      }
+    } catch {}
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const handleSaveDraft = () => {
+    try {
+      const draft = {
+        categoryId,
+        incidentDate,
+        approximateTime,
+        division,
+        district,
+        upazilaThana,
+        areaLandmark,
+        locationPrivacy,
+        institutionType,
+        customOrgName,
+        involvedRole,
+        description,
+        privacyMode,
+        currentStep,
+        savedAt: new Date().toLocaleTimeString(),
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      setDraftSavedNotice(
+        locale === 'bn'
+          ? `খসড়াটি এই ডিভাইসে সংরক্ষিত হয়েছে (${draft.savedAt})`
+          : `Draft saved locally on this device at ${draft.savedAt}.`
+      );
+      setTimeout(() => setDraftSavedNotice(''), 4000);
+    } catch {}
+  };
+
+  const handleRestoreDraft = () => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (draft.categoryId) setCategoryId(draft.categoryId);
+        if (draft.incidentDate) setIncidentDate(draft.incidentDate);
+        if (draft.approximateTime) setApproximateTime(draft.approximateTime);
+        if (draft.division) setDivision(draft.division);
+        if (draft.district) setDistrict(draft.district);
+        if (draft.upazilaThana) setUpazilaThana(draft.upazilaThana);
+        if (draft.areaLandmark) setAreaLandmark(draft.areaLandmark);
+        if (draft.locationPrivacy) setLocationPrivacy(draft.locationPrivacy);
+        if (draft.institutionType) setInstitutionType(draft.institutionType);
+        if (draft.customOrgName) setCustomOrgName(draft.customOrgName);
+        if (draft.involvedRole) setInvolvedRole(draft.involvedRole);
+        if (draft.description) setDescription(draft.description);
+        if (draft.privacyMode) setPrivacyMode(draft.privacyMode);
+        if (draft.currentStep) setCurrentStep(draft.currentStep);
+        setDraftFound(false);
+      }
+    } catch {}
+  };
+
+  const handleDiscardDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+      setDraftFound(false);
+    } catch {}
+  };
 
   // District options based on chosen Division
   const availableDistricts = BANGLADESH_DIVISIONS[division] || [];
@@ -179,6 +274,10 @@ export default function ReportWizardPage() {
       });
 
       setSubmissionResult(res);
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+        setDraftFound(false);
+      } catch {}
       setCurrentStep(6); // Step 6 = Confirmation
     } catch (err: any) {
       setErrorMsg(err.message || 'Submission failed. Please check required fields.');
@@ -247,6 +346,70 @@ export default function ReportWizardPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Offline Alert Banner */}
+      {!isOnline && (
+        <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg flex items-start gap-3 text-amber-900 text-xs">
+          <WifiOff className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <span className="font-bold block">
+              {locale === 'bn' ? 'ইন্টারনেট সংযোগ বিচ্ছিন্ন' : 'Internet Connection Interrupted'}
+            </span>
+            <span>
+              {locale === 'bn'
+                ? 'আপনার লিখিত তথ্য এই ডিভাইসে সুরক্ষিত আছে। পুনরায় সংযোগ এলে জমা দিতে পারবেন।'
+                : 'Your entered information is safely preserved on this device. You can continue writing and submit once reconnected.'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Draft Recovery Banner */}
+      {draftFound && currentStep < 6 && (
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-3 text-xs text-blue-900">
+          <div className="flex items-center gap-2">
+            <RotateCcw className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>
+              {locale === 'bn'
+                ? 'এই ডিভাইসে পূর্বের একটি অসম্পূর্ণ প্রতিবেদন খসড়া পাওয়া গেছে।'
+                : 'An unsaved report draft was found on this device.'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleRestoreDraft}
+              className="px-2.5 py-1 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition-colors"
+            >
+              {locale === 'bn' ? 'পুনরুদ্ধার করুন' : 'Restore'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="px-2 py-1 text-slate-500 hover:text-slate-700 transition-colors"
+            >
+              {locale === 'bn' ? 'মুছে ফেলুন' : 'Discard'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Draft Save Control */}
+      {currentStep < 6 && (
+        <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+          <span className="italic">
+            {draftSavedNotice || (locale === 'bn' ? 'তথ্য এই ব্রাউজারে সুরক্ষিত' : 'Progress saved on this device')}
+          </span>
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium transition-colors shadow-sm"
+          >
+            <Save className="w-3.5 h-3.5 text-slate-500" />
+            <span>{locale === 'bn' ? 'খসড়া সংরক্ষণ' : 'Save Draft'}</span>
+          </button>
         </div>
       )}
 

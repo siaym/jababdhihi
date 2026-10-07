@@ -230,3 +230,52 @@
 **Remaining work:**
 - Configure live remote Supabase credentials in `.env.local` whenever the user is ready to sync with their cloud project.
 
+---
+
+### Date: 2026-10-07 (Session 5)
+**Agent:** Antigravity (Advanced Agentic Assistant)  
+**Task:** Mobile Performance Optimization, Defense Against Coordinated Hostile Attacks & Safe Mode Architecture  
+**Files changed:**
+- `docs/DECISIONS.md` (Recorded ADR-007: Defense-in-Depth Against Coordinated Attacks & Mobile Web Vitals)
+- `docs/SECURITY.md` (Added sections 7-11 covering Threat Model, Attack Defense, Rate Limits, Safe Mode, Storage Segregation, and Offline Drafts)
+- `docs/AI_CONTEXT.md` (Updated status to 0.4.0-alpha with mandatory security & mobile directives)
+- `src/lib/security/rate-limit.ts` (Sliding window multi-tier rate limiter for submit, track, upload, messaging, and API)
+- `src/lib/security/ssrf.ts` (SSRF guard blocking private IP ranges, loopbacks, and non-HTTPS schemes)
+- `src/lib/security/safe-mode.ts` (Emergency defensive Safe Mode engine)
+- `src/lib/security/file-validation.ts` (MIME, extension, and magic-byte security checks)
+- `supabase/migrations/00002_storage_and_security.sql` (3-bucket storage isolation, anti-scraping indexes, and security settings)
+- `src/lib/supabase/storage.ts` (Integrated `report-evidence-private`, `report-evidence-public`, `report-thumbnails`)
+- `src/components/ui/EvidenceCard.tsx` (Click-to-play video facade saving ~1MB JS per video card)
+- `src/app/page.tsx` (Responsive Next.js Image hero, lazy-loaded Map via `next/dynamic`, and intentional mobile layout)
+- `src/app/report/page.tsx` (Online/offline connection listener, local draft auto-save/restore, and submission cleanup)
+- `src/app/admin/page.tsx` (Defensive Safe Mode toggle and system status monitor)
+- `src/app/api/v1/reports/submit/route.ts` (Integrated rate limiting, Safe Mode check, and SSRF validation)
+- `src/app/api/v1/evidence/upload-ticket/route.ts` (Integrated rate limiting, Safe Mode check, and file security checks)
+- `src/app/api/v1/reports/track/route.ts` (Integrated rate limiting against brute-force passkey guessing)
+- `src/app/api/v1/messages/route.ts` (Integrated rate limiting on case messaging)
+- `src/app/api/v1/public/reports/route.ts` (Bounded pagination `limit <= 50`, rate limiting, and edge caching headers)
+- `src/app/api/v1/evidence/validate-url/route.ts` (Integrated SSRF validation and rate limiting)
+- `src/types/index.ts` (Added `warning_notice` field to `EvidenceItem`)
+- `tests/rate-limit.test.mjs` (Unit tests for sliding window rate limiter)
+- `tests/ssrf.test.mjs` (Unit tests for SSRF and loopback blocking)
+- `tests/file-validation.test.mjs` (Unit tests for prohibited extensions and file quotas)
+
+**Database changes:**
+- Formulated migration `00002_storage_and_security.sql` with 3 segregated buckets, anti-abuse database indexes, and `platform_security_settings` table with admin-only RLS.
+
+**Security changes:**
+- Rate limiting active on all key endpoints (5 submissions/hr/IP, 15 tracking lookups/15m/IP, 10 uploads/hr/IP).
+- SSRF prevention blocks requests to loopbacks (`127.0.0.1`), private subnets (`10.*`, `172.16.*`, `192.168.*`), AWS metadata (`169.254.169.254`), and non-HTTPS protocols.
+- Prohibited file extensions blocked (`.exe`, `.bat`, `.php`, `.svg`, `.zip`, etc.) with 100MB hard limit.
+- Click-to-play facades eliminate unrequested third-party tracking from YouTube iframes.
+
+**Performance & Mobile improvements:**
+- Hero background transitioned to Next.js `<Image fill priority />` with responsive `sizes` and modern formats.
+- Bangladesh interactive map lazy-loaded via `next/dynamic` to protect FCP and LCP metrics.
+- Citizens can save report drafts locally and resume even when cellular connectivity drops.
+
+**Tests:**
+- Ran `npm test`: 18/18 unit tests passed (100% pass rate).
+- Ran `npm run build`: All 21 App Router routes compiled cleanly with 0 TypeScript/lint errors.
+
+

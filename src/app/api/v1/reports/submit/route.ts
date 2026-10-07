@@ -5,11 +5,38 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { submitReport as submitInMemory } from '@/services/reports';
 import { generateReportNumber, generateTrackingSecret } from '@/lib/utils';
 import { analyzeExternalUrl } from '@/services/evidence';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
+import { canAcceptSubmissions } from '@/lib/security/safe-mode';
+import { validateSafeUrl } from '@/lib/security/ssrf';
 
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = getClientIp(req);
+
+    // 1. Application-level Rate Limiting Check
+    const rateCheck = checkRateLimit('report-submit', clientIp);
+    if (!rateCheck.isAllowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: `Too many submissions from this IP address. Please wait ${rateCheck.resetSeconds} seconds before submitting again.`,
+            retryAfterSeconds: rateCheck.resetSeconds,
+          },
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateCheck.resetSeconds),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
 
+    // 2. Schema Validation
     const parseResult = ReportSubmissionSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
@@ -29,6 +56,43 @@ export async function POST(req: NextRequest) {
     }
 
     const input = parseResult.data;
+
+    // 3. Emergency Defensive Safe Mode Check
+    const safeModeCheck = canAcceptSubmissions(input.privacy_mode);
+    if (!safeModeCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'SAFE_MODE_ACTIVE',
+            message: safeModeCheck.message,
+          },
+        },
+        { status: 503 }
+      );
+    }
+
+    // 4. SSRF & Protocol Safety Check on External Links
+    if (input.evidence_items) {
+      for (const ev of input.evidence_items) {
+        if (ev.type === 'external_link') {
+          const urlSafety = validateSafeUrl(ev.url);
+          if (!urlSafety.isValid) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: {
+                  code: 'SECURITY_URL_PROHIBITED',
+                  message: urlSafety.error || 'Prohibited or unsafe external link detected.',
+                },
+              },
+              { status: 400 }
+            );
+          }
+        }
+      }
+    }
+
     const admin = createAdminClient();
 
     if (!admin) {
@@ -51,7 +115,7 @@ export async function POST(req: NextRequest) {
     const trackingSecret = generateTrackingSecret();
     const secretHash = crypto.createHash('sha256').update(trackingSecret).digest('hex');
 
-    // 1. Insert Report
+    // Insert Report
     const { data: reportData, error: reportError } = await admin
       .from('reports')
       .insert({
@@ -84,7 +148,6 @@ export async function POST(req: NextRequest) {
 
     if (reportError || !reportData) {
       console.error('Database report insert error:', reportError);
-      // Fallback gracefully
       const fallback = await submitInMemory(input);
       return NextResponse.json({
         success: true,
@@ -99,7 +162,7 @@ export async function POST(req: NextRequest) {
 
     const reportId = reportData.id;
 
-    // 2. Insert Initial Timeline History
+    // Insert Initial Timeline History
     await admin.from('report_status_history').insert({
       report_id: reportId,
       new_status: 'submitted',
@@ -107,7 +170,7 @@ export async function POST(req: NextRequest) {
       internal_rationale: 'Citizen submission intake.',
     });
 
-    // 3. Insert Evidence Items
+    // Insert Evidence Items
     if (input.evidence_items && input.evidence_items.length > 0) {
       const evidenceRows = input.evidence_items.map((ev) => {
         if (ev.type === 'external_link') {

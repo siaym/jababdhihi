@@ -1,19 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPublicReports as getInMemoryPublicReports } from '@/services/reports';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const clientIp = getClientIp(req);
+
+    // Rate Limiting on public querying/scraping
+    const rateCheck = checkRateLimit('public-api', clientIp);
+    if (!rateCheck.isAllowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: `Rate limit exceeded. Please wait ${rateCheck.resetSeconds} seconds.`,
+          },
+        },
+        { status: 429, headers: { 'Retry-After': String(rateCheck.resetSeconds) } }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const categoryCode = searchParams.get('category') || undefined;
     const division = searchParams.get('division') || undefined;
     const district = searchParams.get('district') || undefined;
     const status = searchParams.get('status') || undefined;
     const searchQuery = searchParams.get('search') || undefined;
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const rawPage = parseInt(searchParams.get('page') || '1', 10);
+    const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+    
+    // Strict bounding: limit is constrained between 1 and 50
+    const rawLimit = parseInt(searchParams.get('limit') || '20', 10);
+    const limit = isNaN(rawLimit) ? 20 : Math.min(50, Math.max(1, rawLimit));
 
     const admin = createAdminClient();
 
@@ -83,16 +105,23 @@ export async function GET(req: NextRequest) {
       return safe;
     });
 
-    return NextResponse.json({
-      success: true,
-      data: sanitized,
-      meta: {
-        page,
-        limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit),
+    return NextResponse.json(
+      {
+        success: true,
+        data: sanitized,
+        meta: {
+          page,
+          limit,
+          total: count || 0,
+          totalPages: Math.ceil((count || 0) / limit),
+        },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Public reports API error:', error);
     return NextResponse.json(

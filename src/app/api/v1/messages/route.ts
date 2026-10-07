@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendCaseMessage as sendInMemory } from '@/services/reports';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = getClientIp(req);
+
+    // Rate Limiting for case messaging
+    const rateCheck = checkRateLimit('case-messages', clientIp);
+    if (!rateCheck.isAllowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: `Too many messages sent. Please wait ${rateCheck.resetSeconds} seconds.`,
+          },
+        },
+        { status: 429, headers: { 'Retry-After': String(rateCheck.resetSeconds) } }
+      );
+    }
+
     const body = await req.json();
     const { report_id, sender_type, message_text } = body;
 

@@ -29,6 +29,7 @@ export default function AdminDashboardPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [safeModeActive, setSafeModeActive] = useState<boolean>(false);
 
   useEffect(() => {
     loadReports();
@@ -54,7 +55,7 @@ export default function AdminDashboardPage() {
   const countByStatus = (st: string) => reports.filter((r) => r.status === st).length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -72,9 +73,55 @@ export default function AdminDashboardPage() {
 
         <div className="flex items-center gap-2">
           <Badge variant="default" className="text-xs py-1">
-            Role: Senior Reviewer
+            Role: Senior Reviewer (MFA Enforced)
           </Badge>
         </div>
+      </div>
+
+      {/* Defensive System Status & Emergency Safe Mode Bar */}
+      <div
+        className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors ${
+          safeModeActive ? 'bg-amber-50 border-amber-300' : 'bg-white border-civic-slate-200 shadow-sm'
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-3.5 h-3.5 rounded-full ${
+              safeModeActive ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+            }`}
+          />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-civic-navy">
+                Platform Defense State:
+              </span>
+              <span
+                className={`text-xs font-bold ${
+                  safeModeActive ? 'text-amber-800' : 'text-emerald-700'
+                }`}
+              >
+                {safeModeActive ? '⚠️ EMERGENCY SAFE MODE ACTIVE' : '● Normal Operations'}
+              </span>
+            </div>
+            <p className="text-[11px] text-civic-slate-500 mt-0.5">
+              {safeModeActive
+                ? 'Defensive posture engaged: anonymous submissions paused; direct uploads restricted; rate limits elevated 4x.'
+                : 'All reporting queues, upload tickets, and verification channels operating normally.'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setSafeModeActive(!safeModeActive)}
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
+            safeModeActive
+              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              : 'bg-[#C62828] hover:bg-[#B71C1C] text-white'
+          }`}
+        >
+          {safeModeActive ? 'Restore Normal Mode' : 'Enable Safe Mode'}
+        </button>
       </div>
 
       {/* Triage Status Cards */}

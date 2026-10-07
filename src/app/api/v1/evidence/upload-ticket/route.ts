@@ -1,18 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createEvidenceUploadTicket } from '@/lib/supabase/storage';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
+import { canAcceptFileUploads } from '@/lib/security/safe-mode';
+import { validateEvidenceFileMetadata } from '@/lib/security/file-validation';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { reportId, fileName, fileSizeBytes } = body;
+    const clientIp = getClientIp(req);
 
-    if (!fileName || !fileSizeBytes) {
+    // 1. Rate Limiting Check
+    const rateCheck = checkRateLimit('evidence-upload', clientIp);
+    if (!rateCheck.isAllowed) {
       return NextResponse.json(
         {
           success: false,
           error: {
-            code: 'VALIDATION_ERROR',
-            message: 'fileName and fileSizeBytes are required',
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: `Too many file upload requests. Please wait ${rateCheck.resetSeconds} seconds.`,
+            retryAfterSeconds: rateCheck.resetSeconds,
+          },
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateCheck.resetSeconds),
+          },
+        }
+      );
+    }
+
+    // 2. Safe Mode Check
+    const safeModeCheck = canAcceptFileUploads();
+    if (!safeModeCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'SAFE_MODE_ACTIVE',
+            message: safeModeCheck.message,
+          },
+        },
+        { status: 503 }
+      );
+    }
+
+    const body = await req.json();
+    const { reportId, fileName, fileSizeBytes, mimeType } = body;
+
+    // 3. File Security and Extension Validation
+    const fileSecurity = validateEvidenceFileMetadata(
+      fileName,
+      mimeType || 'application/octet-stream',
+      fileSizeBytes
+    );
+
+    if (!fileSecurity.isValid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'INVALID_FILE_SECURITY',
+            message: fileSecurity.error || 'Prohibited or unsafe file upload attempt.',
           },
         },
         { status: 400 }
@@ -21,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     const ticket = await createEvidenceUploadTicket(
       reportId || 'temp',
-      fileName,
+      fileSecurity.sanitizedFilename,
       fileSizeBytes
     );
 
