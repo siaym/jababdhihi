@@ -2,10 +2,10 @@ import React from 'react';
 import Link from 'next/link';
 import { ArrowRight, Shield, Clock, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
-export function AccountabilityDoctrineBanner() {
+export function AccountabilityDoctrineBanner({ className = '' }: { className?: string }) {
   return (
-    <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-      <div className="rounded-[14px] bg-white border border-[#E5E7EB] shadow-sm overflow-hidden">
+    <section className={`max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 ${className}`}>
+      <div className="rounded-[14px] bg-white border border-[#E2E8F0] shadow-xl shadow-slate-900/5 overflow-hidden">
         {/* Top Warning / Doctrine Header */}
         <div className="p-5 sm:p-7 border-b border-[#F1F5F9] bg-[#FAFAF9]">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

@@ -4,47 +4,40 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
-interface ReportItem {
+interface EditorialReport {
   id: string;
-  type: 'allegation' | 'report' | 'verified' | 'referred';
-  typeLabel: string;
   title: string;
   location: string;
-  timeAgo: string;
+  timeAgo?: string;
   statusLabel: string;
-  statusColor: 'amber' | 'sky' | 'emerald' | 'purple';
+  dotColor: string;
+  statusColor: string;
 }
 
-const DEFAULT_EDITORIAL_REPORTS: ReportItem[] = [
+const DEFAULT_EDITORIAL_REPORTS: EditorialReport[] = [
   {
     id: 'rep-001',
-    type: 'allegation',
-    typeLabel: 'Allegation',
-    title: 'Unauthorized road obstruction & market encroachment',
-    location: 'Sector 11, Uttara · Dhaka',
-    timeAgo: '2h ago',
+    title: 'Unauthorized road obstruction',
+    location: 'Uttara · 2h ago',
     statusLabel: 'UNDER REVIEW',
-    statusColor: 'amber',
+    dotColor: 'text-amber-400',
+    statusColor: 'text-amber-300/90',
   },
   {
     id: 'rep-002',
-    type: 'report',
-    typeLabel: 'Report',
-    title: 'Dormitory student ragging & unauthorized intimidation',
-    location: 'Hathazari · Chattogram',
-    timeAgo: '5h ago',
+    title: 'Dormitory student harassment',
+    location: 'Chattogram · 5h ago',
     statusLabel: 'REVIEW IN PROGRESS',
-    statusColor: 'sky',
+    dotColor: 'text-sky-400',
+    statusColor: 'text-sky-300/90',
   },
   {
     id: 'rep-003',
-    type: 'verified',
-    typeLabel: 'Verified',
-    title: 'River boundary illegal landfill violation inspected',
-    location: 'Karnaphuli · Chattogram',
-    timeAgo: '2d ago',
+    title: 'River boundary violation',
+    location: 'Chattogram · 2d ago',
     statusLabel: 'VERIFIED FINDING',
-    statusColor: 'emerald',
+    dotColor: 'text-emerald-400',
+    statusColor: 'text-emerald-300/90',
   },
 ];
 
@@ -59,97 +52,59 @@ function formatTimeAgo(dateString?: string): string {
 }
 
 export function RecentReportsFloatingCard() {
-  const [reports, setReports] = useState<ReportItem[]>(DEFAULT_EDITORIAL_REPORTS);
+  const [reports, setReports] = useState<EditorialReport[]>(DEFAULT_EDITORIAL_REPORTS);
 
   useEffect(() => {
     fetch('/api/v1/public/reports?limit=3')
       .then((res) => res.json())
       .then((json) => {
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          const mapped: ReportItem[] = json.data.slice(0, 3).map((r: any) => {
+          const mapped: EditorialReport[] = json.data.slice(0, 3).map((r: any) => {
             const isVerified = r.verified_status === true || r.status === 'verified';
             const isReferred = r.status === 'referred';
             const isReview = r.status === 'under_review';
 
-            let type: ReportItem['type'] = 'allegation';
-            let typeLabel = 'Allegation';
             let statusLabel = 'UNDER REVIEW';
-            let statusColor: ReportItem['statusColor'] = 'amber';
+            let dotColor = 'text-amber-400';
+            let statusColor = 'text-amber-300/90';
 
             if (isVerified) {
-              type = 'verified';
-              typeLabel = 'Verified';
               statusLabel = 'VERIFIED FINDING';
-              statusColor = 'emerald';
+              dotColor = 'text-emerald-400';
+              statusColor = 'text-emerald-300/90';
             } else if (isReferred) {
-              type = 'referred';
-              typeLabel = 'Referred';
-              statusLabel = 'REFERRED TO AUTHORITIES';
-              statusColor = 'purple';
+              statusLabel = 'REFERRED TO ACC';
+              dotColor = 'text-purple-400';
+              statusColor = 'text-purple-300/90';
             } else if (!isReview) {
-              type = 'report';
-              typeLabel = 'Report';
               statusLabel = 'REVIEW IN PROGRESS';
-              statusColor = 'sky';
+              dotColor = 'text-sky-400';
+              statusColor = 'text-sky-300/90';
             }
 
-            const location = [r.upazila_thana || r.area_landmark, r.district || r.division]
-              .filter(Boolean)
-              .join(', ');
+            const locationCity = r.district || r.division || r.upazila_thana || 'Bangladesh';
 
             return {
               id: r.id || r.report_number,
-              type,
-              typeLabel,
               title: r.public_summary || r.description || 'Public interest allegation',
-              location: location || 'Bangladesh',
-              timeAgo: formatTimeAgo(r.created_at),
+              location: `${locationCity} · ${formatTimeAgo(r.created_at)}`,
               statusLabel,
+              dotColor,
               statusColor,
             };
           });
           setReports(mapped);
         }
       })
-      .catch(() => {
-        // Fall back gracefully to DEFAULT_EDITORIAL_REPORTS
-      });
+      .catch(() => {});
   }, []);
 
-  const getDotClass = (color: ReportItem['statusColor']) => {
-    switch (color) {
-      case 'emerald':
-        return 'text-emerald-400';
-      case 'sky':
-        return 'text-sky-400';
-      case 'purple':
-        return 'text-purple-400';
-      case 'amber':
-      default:
-        return 'text-amber-400';
-    }
-  };
-
-  const getBadgeClass = (color: ReportItem['statusColor']) => {
-    switch (color) {
-      case 'emerald':
-        return 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20';
-      case 'sky':
-        return 'text-sky-300 bg-sky-500/10 border-sky-500/20';
-      case 'purple':
-        return 'text-purple-300 bg-purple-500/10 border-purple-500/20';
-      case 'amber':
-      default:
-        return 'text-amber-300 bg-amber-500/10 border-amber-500/20';
-    }
-  };
-
   return (
-    <div className="w-full max-w-[360px] rounded-xl bg-[#090F1C]/75 backdrop-blur-xl border border-white/10 p-5 text-white shadow-2xl shadow-black/60">
-      {/* Header */}
+    <div className="w-full max-w-[340px] sm:max-w-[350px] rounded-lg bg-[#0E131C]/90 border border-white/12 p-5 text-white shadow-2xl shadow-black/50">
+      {/* Editorial Header */}
       <div className="flex items-center justify-between pb-3.5 border-b border-white/10">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
-          Recent Reports
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">
+          Recent reports
         </span>
         <Link
           href="/reports"
@@ -160,7 +115,7 @@ export function RecentReportsFloatingCard() {
         </Link>
       </div>
 
-      {/* Reports List */}
+      {/* Reports Feed */}
       <div className="divide-y divide-white/10">
         {reports.map((item) => (
           <Link
@@ -168,31 +123,24 @@ export function RecentReportsFloatingCard() {
             href={`/reports/${item.id}`}
             className="block py-3.5 first:pt-3.5 last:pb-1 group transition-colors"
           >
-            {/* Category / Allegation Type */}
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-              <span className={`text-[10px] ${getDotClass(item.statusColor)}`}>●</span>
-              <span>{item.typeLabel}</span>
+            {/* Top Line: Dot + Title */}
+            <div className="flex items-start gap-2">
+              <span className={`text-[11px] leading-tight mt-0.5 shrink-0 ${item.dotColor}`}>
+                ●
+              </span>
+              <h4 className="text-[13px] font-medium text-white/95 leading-snug line-clamp-2 group-hover:text-red-300 transition-colors">
+                {item.title}
+              </h4>
             </div>
-
-            {/* Title / Summary */}
-            <h4 className="text-xs sm:text-[13px] font-medium text-white/95 leading-snug line-clamp-1 mt-1 group-hover:text-red-300 transition-colors">
-              {item.title}
-            </h4>
 
             {/* Location & Time */}
-            <div className="text-[11px] text-slate-400 mt-1">
-              {item.location} · {item.timeAgo}
+            <div className="text-xs text-slate-400 pl-4 mt-1">
+              {item.location}
             </div>
 
-            {/* Editorial Status Badge */}
-            <div className="mt-2">
-              <span
-                className={`inline-block font-mono text-[9px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded border ${getBadgeClass(
-                  item.statusColor
-                )}`}
-              >
-                {item.statusLabel}
-              </span>
+            {/* Restrained Editorial Status Label */}
+            <div className={`text-[10px] font-mono tracking-widest uppercase font-semibold pl-4 mt-1.5 ${item.statusColor}`}>
+              {item.statusLabel}
             </div>
           </Link>
         ))}
