@@ -42,74 +42,100 @@ const HomeMapPanel = dynamic(
   }
 );
 
-const CATEGORIES: CategoryCardData[] = [
+const DEFAULT_CATEGORIES: CategoryCardData[] = [
   {
     id: 'c1',
     name: 'Corruption',
     slug: 'corruption',
-    reportCount: '1.2K',
+    reportCount: 'Active',
     iconType: 'corruption',
   },
   {
     id: 'c2',
     name: 'Education',
     slug: 'education',
-    reportCount: '980',
+    reportCount: 'Active',
     iconType: 'education',
   },
   {
     id: 'c3',
     name: 'Law Enforcement',
     slug: 'police',
-    reportCount: '860',
+    reportCount: 'Active',
     iconType: 'law',
   },
   {
     id: 'c4',
     name: 'Public Services',
     slug: 'government',
-    reportCount: '740',
+    reportCount: 'Active',
     iconType: 'services',
   },
   {
     id: 'c5',
     name: 'Infrastructure',
     slug: 'public_space',
-    reportCount: '690',
+    reportCount: 'Active',
     iconType: 'infrastructure',
   },
   {
     id: 'c6',
     name: 'Health',
     slug: 'health',
-    reportCount: '420',
+    reportCount: 'Active',
     iconType: 'health',
   },
   {
     id: 'c7',
     name: 'Environment',
     slug: 'environment',
-    reportCount: '380',
+    reportCount: 'Active',
     iconType: 'environment',
   },
   {
     id: 'c8',
     name: 'Workplace',
     slug: 'workplace',
-    reportCount: '350',
+    reportCount: 'Active',
     iconType: 'workplace',
   },
   {
     id: 'c9',
     name: 'Others',
     slug: 'other',
-    reportCount: '310',
+    reportCount: 'Active',
     iconType: 'others',
   },
 ];
 
 export default function HomePage() {
   const { locale } = useI18n();
+  const [categories, setCategories] = React.useState<CategoryCardData[]>(DEFAULT_CATEGORIES);
+
+  React.useEffect(() => {
+    fetch('/api/v1/public/stats')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data?.byCategory) {
+          const byCat = json.data.byCategory as Record<string, number>;
+          setCategories((prev) =>
+            prev.map((c) => {
+              const matchKey = Object.keys(byCat).find(
+                (k) =>
+                  k.toLowerCase().includes(c.name.toLowerCase()) ||
+                  c.name.toLowerCase().includes(k.toLowerCase())
+              );
+              const count = matchKey ? byCat[matchKey] : 0;
+              return {
+                ...c,
+                reportCount: count > 0 ? String(count) : 'Active',
+              };
+            })
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="bg-[#F8F7F3] min-h-screen">
@@ -248,7 +274,7 @@ export default function HomePage() {
 
         {/* 9 Category Cards Horizontal Grid with Restrained Civic Styling */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2.5 sm:gap-3">
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <CategoryCard key={cat.id} category={cat} />
           ))}
         </div>

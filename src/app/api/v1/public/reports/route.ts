@@ -63,9 +63,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    const PUBLIC_SELECT_COLUMNS =
+      'id, report_number, category_id, privacy_mode, incident_date, approximate_time, division, district, upazila_thana, area_landmark, location_privacy, custom_organization_name, institution_type, involved_role_or_title, description, public_summary, status, priority, is_public, verified_status, created_at, updated_at, category:report_categories(id, code, name_en, name_bn, icon)';
+
     let query = admin
       .from('reports')
-      .select('*, category:report_categories(*)', { count: 'exact' })
+      .select(PUBLIC_SELECT_COLUMNS, { count: 'exact' })
       .eq('is_public', true)
       .order('created_at', { ascending: false });
 
@@ -99,9 +102,38 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Strip any sensitive fields before returning publicly
-    const sanitized = (data || []).map((r) => {
-      const { tracking_secret_hash, reporter_name, reporter_email, reporter_phone, ...safe } = r;
+    // Explicit allow-list projection
+    const PUBLIC_FIELDS = [
+      'id',
+      'report_number',
+      'category_id',
+      'category',
+      'privacy_mode',
+      'incident_date',
+      'approximate_time',
+      'division',
+      'district',
+      'upazila_thana',
+      'area_landmark',
+      'location_privacy',
+      'custom_organization_name',
+      'institution_type',
+      'involved_role_or_title',
+      'description',
+      'public_summary',
+      'status',
+      'priority',
+      'is_public',
+      'verified_status',
+      'created_at',
+      'updated_at',
+    ] as const;
+
+    const sanitized = (data || []).map((row: any) => {
+      const safe: Record<string, any> = {};
+      for (const field of PUBLIC_FIELDS) {
+        if (field in row) safe[field] = row[field];
+      }
       return safe;
     });
 

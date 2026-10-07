@@ -110,8 +110,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Supabase Live Persistence
-    const reportSeq = Math.floor(1000 + Math.random() * 9000);
-    const reportNumber = generateReportNumber(reportSeq);
+    const reportNumber = generateReportNumber();
     const trackingSecret = generateTrackingSecret();
     const secretHash = crypto.createHash('sha256').update(trackingSecret).digest('hex');
 
@@ -148,16 +147,17 @@ export async function POST(req: NextRequest) {
 
     if (reportError || !reportData) {
       console.error('Database report insert error:', reportError);
-      const fallback = await submitInMemory(input);
-      return NextResponse.json({
-        success: true,
-        data: {
-          report_number: fallback.reportNumber,
-          tracking_secret: fallback.trackingSecret,
-          report_id: fallback.reportId,
-          status: 'submitted',
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'SUBMISSION_FAILED',
+            message:
+              'We could not securely register your report in the encrypted database. Your local draft has been preserved. Please retry shortly.',
+          },
         },
-      });
+        { status: 500 }
+      );
     }
 
     const reportId = reportData.id;

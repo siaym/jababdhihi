@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeExternalUrl } from '@/services/evidence';
-import { validateSafeUrl } from '@/lib/security/ssrf';
+import { validateSafeUrlAsync } from '@/lib/security/ssrf';
 import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export async function POST(req: NextRequest) {
@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // SSRF & Protocol Safety Check
-    const safety = validateSafeUrl(url);
+    // SSRF & Protocol Safety Check with real DNS resolution
+    const safety = await validateSafeUrlAsync(url);
     if (!safety.isValid) {
       return NextResponse.json(
         {

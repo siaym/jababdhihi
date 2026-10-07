@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
 
     // Fetch messages
     const { data: messages } = await admin
-      .from('case_messages')
+      .from('messages')
       .select('*')
       .eq('report_id', report.id)
       .order('created_at', { ascending: true });

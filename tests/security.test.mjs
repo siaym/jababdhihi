@@ -2,18 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 
-function generateTrackingSecret() {
-  const chars = '23456789abcdefghjkmnpqrstuvwxyz';
-  const segment = (len) => {
-    let str = '';
-    for (let i = 0; i < len; i++) {
-      const idx = Math.floor(Math.random() * chars.length);
-      str += chars[idx];
-    }
-    return str;
-  };
-  return `${segment(4)}-${segment(4)}-${segment(4)}-${segment(4)}`;
-}
+const { generateTrackingSecret, generateReportNumber } = await import(
+  '../src/lib/utils.ts'
+);
 
 test('generateTrackingSecret generates 4 segments with hyphen separation', () => {
   const secret = generateTrackingSecret();
@@ -25,7 +16,7 @@ test('generateTrackingSecret generates 4 segments with hyphen separation', () =>
 });
 
 test('generateTrackingSecret excludes ambiguous characters 0, 1, l, o', () => {
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 50; i++) {
     const secret = generateTrackingSecret();
     assert.equal(secret.includes('0'), false);
     assert.equal(secret.includes('1'), false);
@@ -34,10 +25,32 @@ test('generateTrackingSecret excludes ambiguous characters 0, 1, l, o', () => {
   }
 });
 
-test('secret hashing with SHA-256 is deterministic and irreversible', () => {
+test('generateTrackingSecret has high entropy with 0 collisions in 100 iterations', () => {
+  const generated = new Set();
+  for (let i = 0; i < 100; i++) {
+    const s = generateTrackingSecret();
+    assert.equal(generated.has(s), false);
+    generated.add(s);
+  }
+});
+
+test('generateReportNumber generates collision-safe BD-YYYY-XXXXXX identifiers', () => {
+  const numExplicit = generateReportNumber(1005);
+  assert.match(numExplicit, /^BD-\d{4}-001005$/);
+
+  const numRandom = generateReportNumber();
+  assert.match(numRandom, /^BD-\d{4}-[0-9A-F]{6}$/);
+});
+
+test('secret hashing with SHA-256 is deterministic, constant-time verifiable, and irreversible', () => {
   const secret = 'k9f2-8mpx-4v7q-z1yt';
   const hash1 = crypto.createHash('sha256').update(secret).digest('hex');
   const hash2 = crypto.createHash('sha256').update(secret).digest('hex');
   assert.equal(hash1, hash2);
   assert.equal(hash1.length, 64);
+
+  // Timing safe equality
+  const buf1 = Buffer.from(hash1, 'hex');
+  const buf2 = Buffer.from(hash2, 'hex');
+  assert.equal(crypto.timingSafeEqual(buf1, buf2), true);
 });

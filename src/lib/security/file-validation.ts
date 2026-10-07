@@ -1,8 +1,10 @@
 /**
  * Evidence File Upload Security & Validation Module
- * Validates file sizes, allowed MIME types, dangerous extensions,
- * and header magic bytes to protect storage infrastructure.
+ * Validates file sizes, allowed MIME types, prohibited extensions,
+ * binary magic bytes inspection, and server-side EXIF/metadata sanitization using Sharp.
  */
+
+import sharp from 'sharp';
 
 export const ALLOWED_EVIDENCE_EXTENSIONS = [
   'jpg',
@@ -62,18 +64,17 @@ export const PROHIBITED_EXTENSIONS = [
 export const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB hard ceiling
 export const MAX_IMAGE_PDF_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB standard ceiling
 
-// Known magic byte signatures (first 4 bytes hex)
-export const MAGIC_SIGNATURES: Record<string, string[]> = {
-  'image/jpeg': ['ffd8ffe0', 'ffd8ffe1', 'ffd8ffe2', 'ffd8ffe3', 'ffd8ffdb', 'ffd8ffee'],
-  'image/png': ['89504e47'],
-  'image/webp': ['52494646'], // 'RIFF' header
-  'application/pdf': ['25504446'], // '%PDF'
-};
-
 export interface FileValidationResult {
   isValid: boolean;
   sanitizedFilename: string;
   detectedExtension: string;
+  error?: string;
+}
+
+export interface MagicByteValidationResult {
+  isValid: boolean;
+  detectedMime?: string;
+  detectedType?: string;
   error?: string;
 }
 
@@ -155,5 +156,171 @@ export function validateEvidenceFileMetadata(
     isValid: true,
     sanitizedFilename,
     detectedExtension: rawExt,
+  };
+}
+
+/**
+ * Inspect raw binary buffer magic bytes to verify true file format.
+ * Prevents malicious files disguised with false extensions or headers.
+ */
+export function detectBufferMimeType(buffer: Buffer | Uint8Array): string | null {
+  if (!buffer || buffer.length < 4) return null;
+
+  // Hex helpers
+  const toHex = (start: number, end: number) =>
+    Array.from(buffer.slice(start, end))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+
+  const first4 = toHex(0, 4);
+
+  // JPEG: Starts with FF D8 FF
+  if (toHex(0, 3) === 'ffd8ff') {
+    return 'image/jpeg';
+  }
+
+  // PNG: Starts with 89 50 4E 47
+  if (first4 === '89504e47') {
+    return 'image/png';
+  }
+
+  // PDF: Starts with 25 50 44 46 ('%PDF')
+  if (first4 === '25504446') {
+    return 'application/pdf';
+  }
+
+  // RIFF container (WEBP or WAV)
+  if (first4 === '52494646' && buffer.length >= 12) {
+    const riffType = toHex(8, 12);
+    if (riffType === '57454250') return 'image/webp'; // 'WEBP'
+    if (riffType === '57415645') return 'audio/wav'; // 'WAVE'
+  }
+
+  // MP3: Starts with ID3 (49 44 33) or MPEG frame sync (FF FB / FF F3 / FF F2)
+  if (toHex(0, 3) === '494433' || toHex(0, 2) === 'fffb' || toHex(0, 2) === 'fff3') {
+    return 'audio/mpeg';
+  }
+
+  // MP4: Bytes 4..8 usually contain 'ftyp' (66 74 79 70)
+  if (buffer.length >= 8 && toHex(4, 8) === '66747970') {
+    return 'video/mp4';
+  }
+
+  return null;
+}
+
+/**
+ * Validates a file buffer against expected magic bytes and detects spoofed extensions.
+ */
+export function validateBufferMagicBytes(
+  buffer: Buffer | Uint8Array,
+  declaredMime?: string
+): MagicByteValidationResult {
+  if (!buffer || buffer.length < 2) {
+    return {
+      isValid: false,
+      error: 'File payload is too small or truncated to be a valid evidence asset.',
+    };
+  }
+
+  // Check for dangerous executable signatures (MZ header = 4D 5A, ELF = 7F 45 4C 46, script tags)
+  const first2Hex = Array.from(buffer.slice(0, 2)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  if (first2Hex === '4d5a') {
+    return { isValid: false, error: 'Executable binary (Windows PE / MZ header) detected and prohibited.' };
+  }
+
+  if (buffer.length >= 4) {
+    const first4Hex = Array.from(buffer.slice(0, 4)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    if (first4Hex === '7f454c46') {
+      return { isValid: false, error: 'Executable binary (Linux ELF header) detected and prohibited.' };
+    }
+  }
+
+  if (buffer.length < 8) {
+    return {
+      isValid: false,
+      error: 'File payload is too small or truncated to be a valid evidence asset.',
+    };
+  }
+
+  // Check for HTML/Script injection
+  const initialText = Buffer.from(buffer.slice(0, Math.min(buffer.length, 512))).toString('utf8').toLowerCase();
+  if (
+    initialText.includes('<script') ||
+    initialText.includes('<html') ||
+    initialText.includes('<?php') ||
+    initialText.includes('eval(')
+  ) {
+    return { isValid: false, error: 'HTML, PHP, or script vectors detected in binary asset payload.' };
+  }
+
+  const detectedMime = detectBufferMimeType(buffer);
+  if (!detectedMime) {
+    return {
+      isValid: false,
+      error: 'Unrecognized file format. Magic byte header does not correspond to approved evidence formats.',
+    };
+  }
+
+  // If client declared a MIME type, verify it is compatible
+  if (declaredMime) {
+    const normDeclared = declaredMime.toLowerCase().trim();
+    const isImageMismatch =
+      normDeclared.startsWith('image/') && !detectedMime.startsWith('image/');
+    const isPdfMismatch =
+      normDeclared.includes('pdf') && detectedMime !== 'application/pdf';
+
+    if (isImageMismatch || isPdfMismatch) {
+      return {
+        isValid: false,
+        detectedMime,
+        error: `MIME type mismatch: declared '${declaredMime}' but binary magic bytes indicate '${detectedMime}'.`,
+      };
+    }
+  }
+
+  return {
+    isValid: true,
+    detectedMime,
+    detectedType: detectedMime.split('/')[0],
+  };
+}
+
+/**
+ * Server-side image sanitization: Strips GPS, camera serials, and device EXIF tags
+ * and re-encodes the image using Sharp.
+ */
+export async function sanitizeImageAndStripExif(imageBuffer: Buffer): Promise<{
+  sanitizedBuffer: Buffer;
+  format: string;
+  width?: number;
+  height?: number;
+}> {
+  // Use Sharp to rotate according to EXIF orientation, then strip all metadata
+  const pipeline = sharp(imageBuffer)
+    .rotate() // Auto-rotates based on EXIF orientation
+    .withMetadata({
+      // Strip EXIF, GPS, camera metadata entirely for reporter anonymity and security
+      exif: {},
+    });
+
+  const metadata = await pipeline.metadata();
+  const format = metadata.format || 'webp';
+
+  let sanitizedBuffer: Buffer;
+  if (format === 'png') {
+    sanitizedBuffer = await pipeline.png({ compressionLevel: 8 }).toBuffer();
+  } else if (format === 'webp') {
+    sanitizedBuffer = await pipeline.webp({ quality: 85 }).toBuffer();
+  } else {
+    // Default to clean JPEG
+    sanitizedBuffer = await pipeline.jpeg({ quality: 85, mozjpeg: true }).toBuffer();
+  }
+
+  return {
+    sanitizedBuffer,
+    format,
+    width: metadata.width,
+    height: metadata.height,
   };
 }

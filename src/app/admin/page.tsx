@@ -33,7 +33,40 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     loadReports();
+    loadSafeModeStatus();
   }, []);
+
+  const loadSafeModeStatus = async () => {
+    try {
+      const res = await fetch('/api/v1/admin/safe-mode');
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSafeModeActive(Boolean(json.data.isEnabled));
+      }
+    } catch {}
+  };
+
+  const handleToggleSafeMode = async () => {
+    const nextState = !safeModeActive;
+    try {
+      const res = await fetch('/api/v1/admin/safe-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isEnabled: nextState,
+          reason: nextState ? 'Admin activated defensive posture' : 'Normal operations resumed',
+          disableFileUploads: nextState,
+          tightenRateLimits: nextState,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSafeModeActive(nextState);
+      }
+    } catch {
+      setSafeModeActive(nextState);
+    }
+  };
 
   const loadReports = async () => {
     setIsLoading(true);
@@ -113,7 +146,7 @@ export default function AdminDashboardPage() {
 
         <button
           type="button"
-          onClick={() => setSafeModeActive(!safeModeActive)}
+          onClick={handleToggleSafeMode}
           className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
             safeModeActive
               ? 'bg-emerald-600 hover:bg-emerald-700 text-white'

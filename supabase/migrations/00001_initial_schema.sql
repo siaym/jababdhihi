@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS organizations (
 CREATE TABLE IF NOT EXISTS reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     report_number TEXT UNIQUE NOT NULL,
-    tracking_hash TEXT NOT NULL,
+    tracking_secret_hash TEXT NOT NULL,
     category_id UUID NOT NULL REFERENCES report_categories(id) ON DELETE RESTRICT,
     privacy_mode privacy_mode_enum NOT NULL DEFAULT 'anonymous',
     
@@ -264,22 +264,109 @@ CREATE TABLE IF NOT EXISTS resources (
 );
 
 -- 12. ROW-LEVEL SECURITY ENFORCEMENT
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE report_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organization_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
-ALTER TABLE evidence ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reporter_contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE report_status_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE evidence ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE resource_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE resources ENABLE ROW LEVEL SECURITY;
 
+-- 12.1 Profiles Policies
+CREATE POLICY "Users can view own profile or reviewer directory"
+ON profiles FOR SELECT
+TO authenticated
+USING (
+    id = auth.uid() OR
+    EXISTS (
+        SELECT 1 FROM profiles p
+        WHERE p.id = auth.uid() AND p.role IN ('reviewer', 'senior_reviewer', 'admin')
+    )
+);
+
+CREATE POLICY "Admins can manage all profiles"
+ON profiles FOR ALL
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM profiles p
+        WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+);
+
+-- 12.2 Public Categories and Organizations (Read-only for public, admin write)
+CREATE POLICY "Public can view active report categories"
+ON report_categories FOR SELECT
+USING (is_active = true);
+
+CREATE POLICY "Public can view organization types"
+ON organization_types FOR SELECT
+USING (true);
+
+CREATE POLICY "Public can view verified organizations"
+ON organizations FOR SELECT
+USING (true);
+
+-- 12.3 Reports Policies
 -- Public can view approved public reports
 CREATE POLICY "Public can view approved public reports"
 ON reports FOR SELECT
 USING (is_public = true);
 
--- Anyone can submit a report
+-- Reviewers can view all non-public reports
+CREATE POLICY "Reviewers can view all reports"
+ON reports FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM profiles p
+        WHERE p.id = auth.uid() AND p.role IN ('reviewer', 'senior_reviewer', 'admin')
+    )
+);
+
+-- Anyone can submit a report (service role or public intake)
 CREATE POLICY "Anyone can submit a report"
 ON reports FOR INSERT
 WITH CHECK (true);
 
+-- 12.4 Confidential Reporter Contacts Policies
+-- Only senior reviewers and admins can access confidential contacts
+CREATE POLICY "Senior reviewers and admins can read reporter contacts"
+ON reporter_contacts FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM profiles p
+        WHERE p.id = auth.uid() AND p.role IN ('senior_reviewer', 'admin')
+    )
+);
+
+-- 12.5 Report Status History Policies
+CREATE POLICY "Public can view status history of public reports"
+ON report_status_history FOR SELECT
+USING (
+    EXISTS (
+        SELECT 1 FROM reports r
+        WHERE r.id = report_status_history.report_id AND r.is_public = true
+    )
+);
+
+CREATE POLICY "Reviewers can view all status histories"
+ON report_status_history FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM profiles p
+        WHERE p.id = auth.uid() AND p.role IN ('reviewer', 'senior_reviewer', 'admin')
+    )
+);
+
+-- 12.6 Evidence Policies
 -- Public can view public evidence attached to public reports
 CREATE POLICY "Public can view public evidence"
 ON evidence FOR SELECT
@@ -292,31 +379,52 @@ USING (
     )
 );
 
--- Audit log is append-only
+-- Reviewers can read all evidence
+CREATE POLICY "Reviewers can read all evidence"
+ON evidence FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM profiles p
+        WHERE p.id = auth.uid() AND p.role IN ('reviewer', 'senior_reviewer', 'admin')
+    )
+);
+
+-- 12.7 Case Messages Policies
+CREATE POLICY "Reviewers can read case messages"
+ON messages FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM profiles p
+        WHERE p.id = auth.uid() AND p.role IN ('reviewer', 'senior_reviewer', 'admin')
+    )
+);
+
+-- 12.8 Audit Logs Policies
+-- Audit log is append-only by authenticated staff
 CREATE POLICY "Audit logs insert only"
 ON audit_logs FOR INSERT
 TO authenticated
 WITH CHECK (true);
 
--- 13. SUPABASE STORAGE BUCKET INITIALIZATION
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-    'evidence-vault',
-    'evidence-vault',
-    false, -- Strictly private bucket
-    104857600, -- 100MB limit
-    ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'audio/mpeg', 'audio/wav', 'video/mp4', 'video/webm']
-)
-ON CONFLICT (id) DO NOTHING;
-
--- Storage bucket RLS policies
-CREATE POLICY "Reviewers can read evidence vault"
-ON storage.objects FOR SELECT
+CREATE POLICY "Admins can view audit logs"
+ON audit_logs FOR SELECT
 TO authenticated
-USING (bucket_id = 'evidence-vault');
+USING (
+    EXISTS (
+        SELECT 1 FROM profiles p
+        WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+);
 
-CREATE POLICY "Anyone can upload to evidence vault via signed tickets"
-ON storage.objects FOR INSERT
-TO public
-WITH CHECK (bucket_id = 'evidence-vault');
+-- 12.9 Civic Resources Policies
+CREATE POLICY "Public can view resource categories"
+ON resource_categories FOR SELECT
+USING (true);
+
+CREATE POLICY "Public can view civic resources"
+ON resources FOR SELECT
+USING (true);
+
 

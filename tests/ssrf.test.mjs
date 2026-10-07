@@ -1,43 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-// Mirror of SSRF validation logic for isolated unit testing
-const PRIVATE_IP_REGEXES = [
-  /^127\./,
-  /^10\./,
-  /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
-  /^192\.168\./,
-  /^169\.254\./,
-  /^localhost$/i,
-  /^\[?::1\]?$/,
-];
-
-function validateSafeUrl(rawUrl) {
-  if (!rawUrl || typeof rawUrl !== 'string') {
-    return { isValid: false, error: 'Empty URL' };
-  }
-  if (!/^https:\/\//i.test(rawUrl.trim())) {
-    return { isValid: false, error: 'Non-HTTPS protocol' };
-  }
-  try {
-    const parsed = new URL(rawUrl.trim());
-    if (parsed.protocol !== 'https:') {
-      return { isValid: false, error: 'Non-HTTPS protocol' };
-    }
-    const host = parsed.hostname.toLowerCase();
-    for (const rx of PRIVATE_IP_REGEXES) {
-      if (rx.test(host)) {
-        return { isValid: false, error: 'Targeting private or local IP' };
-      }
-    }
-    if (parsed.username || parsed.password) {
-      return { isValid: false, error: 'Embedded credentials' };
-    }
-    return { isValid: true, domain: host };
-  } catch {
-    return { isValid: false, error: 'Malformed URL' };
-  }
-}
+// Import real production SSRF module directly
+const { validateSafeUrl, validateSafeUrlAsync, isPrivateOrReservedIp } = await import(
+  '../src/lib/security/ssrf.ts'
+);
 
 test('validateSafeUrl blocks plain HTTP, javascript, and data schemes', () => {
   assert.equal(validateSafeUrl('http://example.com').isValid, false);
@@ -60,4 +27,26 @@ test('validateSafeUrl blocks AWS/Cloud metadata and private network IPs', () => 
 test('validateSafeUrl allows valid public HTTPS domains', () => {
   assert.equal(validateSafeUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ').isValid, true);
   assert.equal(validateSafeUrl('https://drive.google.com/drive/folders/abcdef').isValid, true);
+});
+
+test('isPrivateOrReservedIp catches carrier-grade NAT, private subnets, and metadata', () => {
+  assert.equal(isPrivateOrReservedIp('127.0.0.1'), true);
+  assert.equal(isPrivateOrReservedIp('10.0.0.1'), true);
+  assert.equal(isPrivateOrReservedIp('172.16.0.1'), true);
+  assert.equal(isPrivateOrReservedIp('192.168.1.1'), true);
+  assert.equal(isPrivateOrReservedIp('169.254.169.254'), true);
+  assert.equal(isPrivateOrReservedIp('100.64.0.1'), true);
+  assert.equal(isPrivateOrReservedIp('::1'), true);
+  assert.equal(isPrivateOrReservedIp('fe80::1'), true);
+  assert.equal(isPrivateOrReservedIp('8.8.8.8'), false);
+  assert.equal(isPrivateOrReservedIp('1.1.1.1'), false);
+});
+
+test('validateSafeUrlAsync resolves real hostnames and verifies non-private IPs', async () => {
+  const result = await validateSafeUrlAsync('https://www.google.com');
+  assert.equal(result.isValid, true);
+  assert.ok(result.resolvedIps && result.resolvedIps.length > 0);
+  for (const ip of result.resolvedIps) {
+    assert.equal(isPrivateOrReservedIp(ip), false);
+  }
 });

@@ -1,4 +1,4 @@
-import { EvidenceProvider } from '@/types';
+import type { EvidenceProvider } from '@/types';
 
 export interface ExternalUrlAnalysis {
   isValid: boolean;

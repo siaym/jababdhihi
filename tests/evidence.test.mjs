@@ -1,59 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-// Helper mirror of analyzeExternalUrl for standalone node testing
-function analyzeExternalUrl(url) {
-  try {
-    const parsed = new URL(url);
-    const host = parsed.hostname.toLowerCase();
-
-    if (host.includes('youtube.com') || host.includes('youtu.be')) {
-      let videoId = '';
-      if (host.includes('youtu.be')) {
-        videoId = parsed.pathname.slice(1);
-      } else {
-        videoId = parsed.searchParams.get('v') || '';
-      }
-      return {
-        provider: 'youtube',
-        isEmbeddable: true,
-        platformId: videoId,
-      };
-    }
-
-    if (host.includes('facebook.com') || host.includes('fb.watch')) {
-      return {
-        provider: 'facebook',
-        isEmbeddable: true,
-        platformId: parsed.searchParams.get('v') || '',
-      };
-    }
-
-    if (host.includes('drive.google.com')) {
-      return {
-        provider: 'google_drive',
-        isEmbeddable: false,
-      };
-    }
-
-    if (host.includes('dropbox.com')) {
-      return {
-        provider: 'dropbox',
-        isEmbeddable: false,
-      };
-    }
-
-    return {
-      provider: 'external_web',
-      isEmbeddable: false,
-    };
-  } catch {
-    return {
-      provider: 'external_web',
-      isEmbeddable: false,
-    };
-  }
-}
+const { analyzeExternalUrl } = await import('../src/services/evidence.ts');
 
 test('analyzeExternalUrl identifies YouTube standard watch URL', () => {
   const result = analyzeExternalUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ');

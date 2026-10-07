@@ -42,12 +42,26 @@ ON CONFLICT (id) DO NOTHING;
 CREATE POLICY "Reviewers can read private evidence"
 ON storage.objects FOR SELECT
 TO authenticated
-USING (bucket_id = 'report-evidence-private');
+USING (
+    bucket_id = 'report-evidence-private'
+    AND EXISTS (
+        SELECT 1 FROM profiles
+        WHERE profiles.id = auth.uid()
+        AND profiles.role IN ('reviewer', 'senior_reviewer', 'admin')
+    )
+);
 
-CREATE POLICY "Public upload to private evidence via signed tickets"
+CREATE POLICY "Reviewers can upload internal evidence"
 ON storage.objects FOR INSERT
-TO public
-WITH CHECK (bucket_id = 'report-evidence-private');
+TO authenticated
+WITH CHECK (
+    bucket_id = 'report-evidence-private'
+    AND EXISTS (
+        SELECT 1 FROM profiles
+        WHERE profiles.id = auth.uid()
+        AND profiles.role IN ('reviewer', 'senior_reviewer', 'admin')
+    )
+);
 
 CREATE POLICY "Public can read approved public evidence"
 ON storage.objects FOR SELECT
@@ -57,7 +71,14 @@ USING (bucket_id = 'report-evidence-public' OR bucket_id = 'report-thumbnails');
 CREATE POLICY "Reviewers can publish approved evidence"
 ON storage.objects FOR INSERT
 TO authenticated
-WITH CHECK (bucket_id = 'report-evidence-public' OR bucket_id = 'report-thumbnails');
+WITH CHECK (
+    (bucket_id = 'report-evidence-public' OR bucket_id = 'report-thumbnails')
+    AND EXISTS (
+        SELECT 1 FROM profiles
+        WHERE profiles.id = auth.uid()
+        AND profiles.role IN ('reviewer', 'senior_reviewer', 'admin')
+    )
+);
 
 
 -- 2. QUERY PERFORMANCE & ANTI-SCRAPING INDEXES
@@ -75,8 +96,8 @@ WHERE is_public = true;
 CREATE INDEX IF NOT EXISTS idx_reports_secret_hash
 ON reports (tracking_secret_hash);
 
-CREATE INDEX IF NOT EXISTS idx_case_messages_report_id_created
-ON case_messages (report_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_messages_report_id_created
+ON messages (report_id, created_at ASC);
 
 CREATE INDEX IF NOT EXISTS idx_evidence_report_id
 ON evidence (report_id);

@@ -3,6 +3,8 @@ import { createEvidenceUploadTicket } from '@/lib/supabase/storage';
 import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 import { canAcceptFileUploads } from '@/lib/security/safe-mode';
 import { validateEvidenceFileMetadata } from '@/lib/security/file-validation';
+import { authorizeCaseOperation } from '@/lib/security/auth-check';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,9 +47,84 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { reportId, fileName, fileSizeBytes, mimeType } = body;
+    const { report_number, reportId, tracking_secret, fileName, fileSizeBytes, mimeType } = body;
 
-    // 3. File Security and Extension Validation
+    const targetReportRef = report_number || reportId;
+
+    if (!targetReportRef) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'A valid report_number or reportId is required to attach evidence.',
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    // 3. Zero-Trust Authorization Verification
+    const authResult = await authorizeCaseOperation(req, {
+      reportIdentifier: targetReportRef,
+      trackingSecret: tracking_secret,
+    });
+
+    if (!authResult.authorized) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message:
+              authResult.error ||
+              'Access denied. Valid tracking secret or reviewer credentials required.',
+          },
+        },
+        { status: authResult.statusCode || 401 }
+      );
+    }
+
+    const boundReportId = authResult.report?.id || targetReportRef;
+
+    // 4. Case Status & Quota Verification
+    if (authResult.report) {
+      if (['closed', 'resolved'].includes(authResult.report.status)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'CASE_INACTIVE',
+              message: 'This report is closed. No further evidence uploads are accepted.',
+            },
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    const admin = createAdminClient();
+    if (admin) {
+      const { count, error: countErr } = await admin
+        .from('evidence')
+        .select('*', { count: 'exact', head: true })
+        .eq('report_id', boundReportId);
+
+      if (!countErr && typeof count === 'number' && count >= 10) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'QUOTA_EXCEEDED',
+              message: 'The maximum limit of 10 evidence items per case has been reached.',
+            },
+          },
+          { status: 429 }
+        );
+      }
+    }
+
+    // 5. File Security, Size, and Extension Validation
     const fileSecurity = validateEvidenceFileMetadata(
       fileName,
       mimeType || 'application/octet-stream',
@@ -67,8 +144,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 6. Generate Pre-Signed Upload Ticket Bound to Authorized Report ID
     const ticket = await createEvidenceUploadTicket(
-      reportId || 'temp',
+      boundReportId,
       fileSecurity.sanitizedFilename,
       fileSizeBytes
     );
@@ -79,7 +157,7 @@ export async function POST(req: NextRequest) {
           success: false,
           error: {
             code: 'STORAGE_ERROR',
-            message: 'Failed to generate pre-signed upload ticket',
+            message: 'Failed to generate pre-signed upload ticket.',
           },
         },
         { status: 500 }
@@ -96,7 +174,7 @@ export async function POST(req: NextRequest) {
         success: false,
         error: {
           code: 'SERVER_ERROR',
-          message: error.message || 'An unexpected error occurred',
+          message: error.message || 'An unexpected error occurred during ticket issuance.',
         },
       },
       { status: 500 }

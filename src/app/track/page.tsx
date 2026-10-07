@@ -73,7 +73,7 @@ function TrackReportContent() {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'case_messages',
+          table: 'messages',
           filter: `report_id=eq.${caseData.report.id}`,
         },
         (payload) => {
@@ -107,15 +107,20 @@ function TrackReportContent() {
     setErrorMsg('');
 
     try {
-      const data = await trackReport(num, sec);
-      if (!data) {
-        setErrorMsg('Invalid Report Reference ID or Tracking Secret. Please verify your credentials.');
+      const res = await fetch('/api/v1/reports/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ report_number: num.trim(), tracking_secret: sec.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setErrorMsg(json.error?.message || 'Invalid Report Reference ID or Tracking Secret. Please verify your credentials.');
         setCaseData(null);
       } else {
-        setCaseData(data);
+        setCaseData(json.data);
       }
-    } catch (err: any) {
-      setErrorMsg('Failed to look up report. Please try again.');
+    } catch {
+      setErrorMsg('Failed to look up report. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +131,21 @@ function TrackReportContent() {
 
     setIsSendingMsg(true);
     try {
-      const sent = await sendCaseMessage(caseData.report.id, 'reporter', newMsgText.trim());
+      const res = await fetch('/api/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          report_id: caseData.report.id,
+          message_text: newMsgText.trim(),
+          tracking_secret: trackingSecret.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.error?.message || 'Failed to securely deliver message.');
+        return;
+      }
+      const sent = json.data;
       setCaseData((prev) =>
         prev
           ? {
@@ -137,7 +156,7 @@ function TrackReportContent() {
       );
       setNewMsgText('');
     } catch {
-      // Handle error
+      alert('Network error while sending message.');
     } finally {
       setIsSendingMsg(false);
     }

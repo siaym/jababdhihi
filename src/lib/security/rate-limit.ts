@@ -1,9 +1,19 @@
 /**
- * Application-Level Sliding Window Rate Limiter
- * Provides multi-tier rate limiting across anonymous submissions,
- * case tracking lookups, direct evidence uploads, and public APIs.
- * Supports configurable thresholds via environment variables.
+ * Multi-Tier Distributed Rate Limiting Architecture
+ * Supports Upstash Redis REST for serverless distributed synchronization across Vercel nodes,
+ * with an in-memory sliding-window fallback.
+ * Dynamic multiplier integration with Emergency Safe Mode.
  */
+
+let runtimeRateMultiplier = 1.0;
+
+export function setRateLimitMultiplier(multiplier: number) {
+  runtimeRateMultiplier = Math.max(0.1, multiplier);
+}
+
+export function getRateLimitMultiplier(): number {
+  return runtimeRateMultiplier;
+}
 
 interface RateLimitRecord {
   timestamps: number[];
@@ -11,18 +21,18 @@ interface RateLimitRecord {
 
 const memoryStore = new Map<string, RateLimitRecord>();
 
-// Cleanup stale entries every 10 minutes to prevent memory leaks
+// Cleanup stale entries every 10 minutes to prevent memory leaks in long-running processes
 if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
+  const cleanupTimer = setInterval(() => {
     const now = Date.now();
     memoryStore.forEach((record, key) => {
-      // Keep only timestamps within the last hour
       record.timestamps = record.timestamps.filter((ts) => now - ts < 3600 * 1000);
       if (record.timestamps.length === 0) {
         memoryStore.delete(key);
       }
     });
   }, 10 * 60 * 1000);
+  if (cleanupTimer.unref) cleanupTimer.unref();
 }
 
 export interface RateLimitConfig {
@@ -31,7 +41,7 @@ export interface RateLimitConfig {
 }
 
 export const RATE_LIMIT_TIERS: Record<string, RateLimitConfig> = {
-  // Anonymous / Public report submission: default 5 per hour
+  // Anonymous report submission: default 5 per hour
   'report-submit': {
     maxRequests: parseInt(process.env.RATE_LIMIT_SUBMIT_MAX || '5', 10),
     windowSeconds: parseInt(process.env.RATE_LIMIT_SUBMIT_WINDOW || '3600', 10),
@@ -66,20 +76,26 @@ export interface RateLimitCheckResult {
 }
 
 /**
- * Check and record an incoming request against a specific action tier and client identifier (IP/account)
+ * Check rate limit using in-memory sliding window or distributed counter.
+ * Dynamically tightens limits when Safe Mode is active.
  */
 export function checkRateLimit(
   actionTier: keyof typeof RATE_LIMIT_TIERS,
   identifier: string,
   customConfig?: Partial<RateLimitConfig>
 ): RateLimitCheckResult {
-  const config = {
+  const baseConfig = {
     ...RATE_LIMIT_TIERS[actionTier],
     ...customConfig,
   };
 
+  // Dynamic rate limit multiplier: when under high alert/attack, thresholds tighten
+  const multiplier = runtimeRateMultiplier;
+  const maxRequests = Math.max(1, Math.floor(baseConfig.maxRequests / multiplier));
+  const windowSeconds = baseConfig.windowSeconds;
+
   const now = Date.now();
-  const windowMs = config.windowSeconds * 1000;
+  const windowMs = windowSeconds * 1000;
   const storeKey = `${actionTier}:${identifier}`;
 
   let record = memoryStore.get(storeKey);
@@ -93,7 +109,7 @@ export function checkRateLimit(
 
   const currentCount = record.timestamps.length;
 
-  if (currentCount >= config.maxRequests) {
+  if (currentCount >= maxRequests) {
     const oldestTimestamp = record.timestamps[0] || now;
     const resetSeconds = Math.max(
       1,
@@ -104,35 +120,111 @@ export function checkRateLimit(
       isAllowed: false,
       remaining: 0,
       resetSeconds,
-      totalLimit: config.maxRequests,
+      totalLimit: maxRequests,
     };
   }
 
-  // Record this attempt
+  // Record this request
   record.timestamps.push(now);
+
+  const remaining = Math.max(0, maxRequests - record.timestamps.length);
+  const resetSeconds = Math.ceil(windowSeconds);
 
   return {
     isAllowed: true,
-    remaining: config.maxRequests - record.timestamps.length,
-    resetSeconds: config.windowSeconds,
-    totalLimit: config.maxRequests,
+    remaining,
+    resetSeconds,
+    totalLimit: maxRequests,
   };
 }
 
 /**
- * Extracts client IP from standard reverse proxy headers (e.g. Vercel x-forwarded-for, cf-connecting-ip)
+ * Asynchronous distributed rate limiter check (compatible with Upstash Redis REST).
+ * If UPSTASH_REDIS_REST_URL is configured, utilizes atomic Redis INCR & EXPIRE.
+ * Falls back transparently to local sliding window.
+ */
+export async function checkRateLimitAsync(
+  actionTier: keyof typeof RATE_LIMIT_TIERS,
+  identifier: string,
+  customConfig?: Partial<RateLimitConfig>
+): Promise<RateLimitCheckResult> {
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!redisUrl || !redisToken) {
+    // Fall back to memory limiter
+    return checkRateLimit(actionTier, identifier, customConfig);
+  }
+
+  try {
+    const baseConfig = {
+      ...RATE_LIMIT_TIERS[actionTier],
+      ...customConfig,
+    };
+    const multiplier = runtimeRateMultiplier;
+    const maxRequests = Math.max(1, Math.floor(baseConfig.maxRequests / multiplier));
+    const windowSeconds = baseConfig.windowSeconds;
+
+    const key = `rl:${actionTier}:${identifier}`;
+
+    // Execute atomic INCR via Upstash Redis REST pipeline
+    const pipelineRes = await fetch(`${redisUrl}/pipeline`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${redisToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify([
+        ['INCR', key],
+        ['EXPIRE', key, windowSeconds, 'NX'],
+        ['TTL', key],
+      ]),
+    });
+
+    if (pipelineRes.ok) {
+      const results = await pipelineRes.json();
+      const currentCount = Number(results[0]?.result || 1);
+      const ttl = Number(results[2]?.result || windowSeconds);
+
+      if (currentCount > maxRequests) {
+        return {
+          isAllowed: false,
+          remaining: 0,
+          resetSeconds: Math.max(1, ttl),
+          totalLimit: maxRequests,
+        };
+      }
+
+      return {
+        isAllowed: true,
+        remaining: Math.max(0, maxRequests - currentCount),
+        resetSeconds: Math.max(1, ttl),
+        totalLimit: maxRequests,
+      };
+    }
+  } catch (err) {
+    console.warn('Distributed rate limit call failed, falling back to local memory store:', err);
+  }
+
+  return checkRateLimit(actionTier, identifier, customConfig);
+}
+
+/**
+ * Safely extract client IP address from standard reverse proxy headers.
  */
 export function getClientIp(req: Request): string {
   const headers = req.headers;
-  const forwardedFor = headers.get('x-forwarded-for');
-  if (forwardedFor) {
-    return forwardedFor.split(',')[0].trim();
-  }
-  const realIp = headers.get('x-real-ip');
-  if (realIp) return realIp.trim();
+  const cfConnectingIp = headers.get('cf-connecting-ip');
+  if (cfConnectingIp) return cfConnectingIp.trim();
 
-  const cfIp = headers.get('cf-connecting-ip');
-  if (cfIp) return cfIp.trim();
+  const xRealIp = headers.get('x-real-ip');
+  if (xRealIp) return xRealIp.trim();
+
+  const xForwardedFor = headers.get('x-forwarded-for');
+  if (xForwardedFor) {
+    const first = xForwardedFor.split(',')[0];
+    if (first) return first.trim();
+  }
 
   return '127.0.0.1';
 }

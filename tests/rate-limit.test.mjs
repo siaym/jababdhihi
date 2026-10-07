@@ -1,68 +1,61 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-// Mirror of rate limiting logic for isolated unit testing
-function createRateLimiter(maxRequests, windowSeconds) {
-  const timestamps = [];
+const { checkRateLimit, setRateLimitMultiplier, getClientIp } = await import(
+  '../src/lib/security/rate-limit.ts'
+);
 
-  return function check(now = Date.now()) {
-    const windowMs = windowSeconds * 1000;
-    while (timestamps.length > 0 && now - timestamps[0] >= windowMs) {
-      timestamps.shift();
-    }
+test('rateLimiter: real checkRateLimit allows requests up to tier threshold', () => {
+  const testId = `unit-test-${Date.now()}-1`;
+  const tierConfig = { maxRequests: 3, windowSeconds: 60 };
 
-    if (timestamps.length >= maxRequests) {
-      const resetSeconds = Math.ceil((timestamps[0] + windowMs - now) / 1000);
-      return {
-        isAllowed: false,
-        remaining: 0,
-        resetSeconds,
-      };
-    }
-
-    timestamps.push(now);
-    return {
-      isAllowed: true,
-      remaining: maxRequests - timestamps.length,
-      resetSeconds: windowSeconds,
-    };
-  };
-}
-
-test('rateLimiter allows requests up to max threshold', () => {
-  const limiter = createRateLimiter(3, 60);
-  const now = 100000;
-
-  const r1 = limiter(now);
+  const r1 = checkRateLimit('public-api', testId, tierConfig);
   assert.equal(r1.isAllowed, true);
   assert.equal(r1.remaining, 2);
 
-  const r2 = limiter(now + 1000);
+  const r2 = checkRateLimit('public-api', testId, tierConfig);
   assert.equal(r2.isAllowed, true);
   assert.equal(r2.remaining, 1);
 
-  const r3 = limiter(now + 2000);
+  const r3 = checkRateLimit('public-api', testId, tierConfig);
   assert.equal(r3.isAllowed, true);
   assert.equal(r3.remaining, 0);
 
-  // 4th request exceeds limit
-  const r4 = limiter(now + 3000);
+  // 4th request exceeds threshold
+  const r4 = checkRateLimit('public-api', testId, tierConfig);
   assert.equal(r4.isAllowed, false);
   assert.equal(r4.remaining, 0);
   assert.ok(r4.resetSeconds > 0);
 });
 
-test('rateLimiter resets quota after sliding window expires', () => {
-  const limiter = createRateLimiter(2, 10);
-  const start = 100000;
+test('rateLimiter: dynamic rate multiplier tightens quotas', () => {
+  const testId = `unit-test-${Date.now()}-multiplier`;
+  setRateLimitMultiplier(2.0); // 2x stricter
 
-  assert.equal(limiter(start).isAllowed, true);
-  assert.equal(limiter(start + 1000).isAllowed, true);
-  assert.equal(limiter(start + 2000).isAllowed, false);
+  // Normal limit is 4, halved to 2
+  const customTier = { maxRequests: 4, windowSeconds: 60 };
+  const r1 = checkRateLimit('public-api', testId, customTier);
+  assert.equal(r1.isAllowed, true);
+  assert.equal(r1.totalLimit, 2);
 
-  // Advance clock beyond 10-second window
-  const afterWindow = start + 11000;
-  const resetAttempt = limiter(afterWindow);
-  assert.equal(resetAttempt.isAllowed, true);
-  assert.equal(resetAttempt.remaining, 1);
+  const r2 = checkRateLimit('public-api', testId, customTier);
+  assert.equal(r2.isAllowed, true);
+
+  const r3 = checkRateLimit('public-api', testId, customTier);
+  assert.equal(r3.isAllowed, false);
+
+  // Restore normal multiplier
+  setRateLimitMultiplier(1.0);
+});
+
+test('rateLimiter: getClientIp extracts real client IP from reverse proxy headers', () => {
+  const reqWithCf = new Request('https://jababdihi.org', {
+    headers: { 'cf-connecting-ip': '203.0.113.195' },
+  });
+  assert.equal(getClientIp(reqWithCf), '203.0.113.195');
+
+  const reqWithXff = new Request('https://jababdihi.org', {
+    headers: { 'x-forwarded-for': '198.51.100.22, 10.0.0.1' },
+  });
+  assert.equal(getClientIp(reqWithXff), '198.51.100.22');
 });

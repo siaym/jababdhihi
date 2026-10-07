@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendCaseMessage as sendInMemory } from '@/services/reports';
 import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
+import { verifyReporterCredentials, verifyStaffSession } from '@/lib/security/auth-check';
 
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIp(req);
 
-    // Rate Limiting for case messaging
+    // 1. Rate Limiting for case messaging
     const rateCheck = checkRateLimit('case-messages', clientIp);
     if (!rateCheck.isAllowed) {
       return NextResponse.json(
@@ -23,52 +24,118 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { report_id, sender_type, message_text } = body;
+    const { report_id, report_number, message_text, tracking_secret } = body;
+    const targetCaseRef = report_id || report_number;
 
-    if (!report_id || !sender_type || !message_text?.trim()) {
+    if (!targetCaseRef || !message_text?.trim()) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'report_id, sender_type, and message_text are required',
+            message: 'Target case identifier and message_text are required.',
           },
         },
         { status: 400 }
       );
     }
 
-    if (!['reporter', 'reviewer'].includes(sender_type)) {
+    const cleanText = message_text.trim();
+    if (cleanText.length > 3000) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'sender_type must be "reporter" or "reviewer"',
+            message: 'Message length exceeds maximum allowable limit of 3,000 characters.',
           },
         },
         { status: 400 }
       );
+    }
+
+    // 2. Determine and Authenticate Sender Identity
+    // Client is NEVER trusted to assert sender_type. Identity is cryptographically verified.
+    let verifiedSenderType: 'reporter' | 'reviewer' = 'reporter';
+    let verifiedSenderId: string | null = null;
+    let boundReportId = targetCaseRef;
+
+    // A. Check for authenticated reviewer session
+    const authHeader = req.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const staffAuth = await verifyStaffSession(req, 'reviewer');
+      if (staffAuth.authorized && staffAuth.user) {
+        verifiedSenderType = 'reviewer';
+        verifiedSenderId = staffAuth.user.id;
+      }
+    }
+
+    // B. If not a verified reviewer, caller MUST prove reporter ownership via tracking secret
+    if (verifiedSenderType !== 'reviewer') {
+      if (!tracking_secret) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'UNAUTHORIZED',
+              message:
+                'Tracking passkey is required to post messages to this case. Unauthenticated case injection is strictly prevented.',
+            },
+          },
+          { status: 401 }
+        );
+      }
+
+      const reporterAuth = await verifyReporterCredentials(targetCaseRef, tracking_secret);
+      if (!reporterAuth.authorized) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'UNAUTHORIZED',
+              message: reporterAuth.error || 'Invalid case reference or secret tracking passkey.',
+            },
+          },
+          { status: 401 }
+        );
+      }
+
+      if (reporterAuth.report) {
+        boundReportId = reporterAuth.report.id;
+        if (['closed', 'resolved'].includes(reporterAuth.report.status)) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: {
+                code: 'CASE_INACTIVE',
+                message: 'This case is closed. New messages cannot be appended.',
+              },
+            },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     const admin = createAdminClient();
 
     if (!admin) {
-      // In-memory fallback
-      const msg = await sendInMemory(report_id, sender_type, message_text.trim());
+      // Offline/local mock development fallback
+      const msg = await sendInMemory(boundReportId, verifiedSenderType, cleanText);
       return NextResponse.json({
         success: true,
         data: msg,
       });
     }
 
-    // Insert into Supabase
+    // 3. Insert into Supabase `messages` table
     const { data: insertedMsg, error } = await admin
-      .from('case_messages')
+      .from('messages')
       .insert({
-        report_id,
-        sender_type,
-        message_text: message_text.trim(),
+        report_id: boundReportId,
+        sender_type: verifiedSenderType,
+        sender_id: verifiedSenderId,
+        message_text: cleanText,
         is_read: false,
       })
       .select('*')
@@ -76,11 +143,16 @@ export async function POST(req: NextRequest) {
 
     if (error || !insertedMsg) {
       console.error('Database message insert error:', error);
-      const fallback = await sendInMemory(report_id, sender_type, message_text.trim());
-      return NextResponse.json({
-        success: true,
-        data: fallback,
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'MESSAGE_DELIVERY_FAILED',
+            message: 'Unable to securely record your message in the case vault. Please try again.',
+          },
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({

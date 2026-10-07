@@ -57,7 +57,7 @@ export interface ReportCategory {
 export interface Report {
   id: string;
   report_number: string; // BD-2026-XXXXXX
-  tracking_hash?: string;
+  tracking_secret_hash?: string;
   category_id: string;
   category?: ReportCategory;
   privacy_mode: PrivacyMode;
