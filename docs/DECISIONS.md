@@ -90,3 +90,28 @@ Enforce PostgreSQL Row-Level Security (RLS) policies directly in the database. A
 
 ### Date
 2026-10-07
+
+---
+
+## ADR-006 — Supabase as the Exclusive Primary Backend Platform
+
+### Context
+Civic engineering projects require clear, cohesive backend architecture to prevent tech stack fragmentation (e.g., arbitrarily mixing Firebase, MongoDB, custom Node/Express monoliths, or conflicting authentication providers halfway through development).
+
+### Decision
+Use **Supabase** as the exclusive primary backend platform for Jababdihi:
+1. **Supabase PostgreSQL:** Primary relational database for all structured entities (`reports`, `categories`, `organizations`, `report_status_history`, `evidence`, `messages`, `audit_logs`).
+2. **Supabase Auth:** User accounts, Reviewer accounts, Senior Reviewer accounts, Admin sessions, and RBAC.
+3. **Supabase Storage:** Private object storage bucket (`evidence-vault`) for uploaded images, short videos, PDFs, and audio, using pre-signed upload tickets and time-limited pre-signed view URLs.
+4. **Supabase Row-Level Security (RLS):** Authorization and access boundary enforcement directly in the database.
+5. **Realtime:** Subscriptions for live reviewer queue updates and secure case communication.
+6. **External Evidence Exception:** External media links (YouTube, Facebook, Google Drive, Dropbox) are stored purely as metadata and URLs in PostgreSQL and embedded directly in the frontend without consuming Supabase Storage bandwidth.
+
+**Rule:** Do not introduce another backend service unless there is a documented technical reason and the decision is formally recorded in `docs/DECISIONS.md`.
+
+### Consequences & Trade-offs
+- **Positives:** Unified developer experience, robust database-level security via RLS, built-in connection pooling via PgBouncer, eliminates fragmented microservice maintenance.
+- **Trade-offs:** Requires thorough RLS policy authoring and proper service-role key isolation.
+
+### Date
+2026-10-07

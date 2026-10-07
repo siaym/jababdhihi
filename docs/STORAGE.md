@@ -12,6 +12,33 @@ The storage system handles direct evidence uploads without exposing persistent p
 - **Automated EXIF Scrubbing:** Stripping of camera serials, timestamps, and GPS coordinates prior to final storage.
 - **Configurable Storage Quotas:** Configurable limits enforced server-side.
 
+### 1.1 Direct Uploads vs External Evidence Separation
+
+#### External Evidence (YouTube, Facebook, Google Drive, Dropbox):
+```text
+YouTube video
+      ↓
+Store URL in Supabase
+      ↓
+Embed on Jababdihi
+      ↓
+YouTube serves video
+```
+External media links do not consume Supabase Storage bandwidth or bucket storage.
+
+#### Uploaded Evidence:
+```text
+User
+ ↓
+Jababdihi
+ ↓
+Supabase Storage (evidence-vault private bucket)
+ ↓
+Reviewer
+ ↓
+Public only if approved
+```
+
 ---
 
 ## 2. Storage Buckets & Policies

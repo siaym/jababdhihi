@@ -1,13 +1,18 @@
-CURRENT PROJECT STATUS: JABABDIHI EXACT UI & REFERENCE FIDELITY COMPLETED  
-VERSION: 0.3.0-alpha  
+CURRENT PROJECT STATUS: SUPABASE BACKEND ARCHITECTURE & EXACT UI COMPLETED  
+VERSION: 0.3.1-alpha  
 LAST UPDATED: 2026-10-07  
-CURRENT PHASE: EXACT REFERENCE UI IMPLEMENTATION (Jababdihi Brand & Layout)  
-LAST COMPLETED TASK: Implemented custom Jababdihi logo, 74px navbar, photographic hero with dark vignette, floating Recent Reports panel, 9-item category grid, and side-by-side map & latest reports split matching reference image  
-CURRENT TASK: Verified production build (15 routes 200 OK) and updated documentation suite  
-NEXT RECOMMENDED TASK: Phase 6 Communication & Integrations (Live Supabase Auth / Storage connection and real-time feeds)
+CURRENT PHASE: SUPABASE BACKEND INTEGRATION & EXACT UI FIDELITY  
+LAST COMPLETED TASK: Implemented custom Jababdihi logo, 74px navbar, photographic hero with dark vignette, floating Recent Reports panel, 9-item category grid, side-by-side map & latest reports split matching reference image, and full Supabase client/server/admin/storage integration layer  
+CURRENT TASK: Finalized ADR-006 and Supabase storage bucket policies  
+NEXT RECOMMENDED TASK: Phase 6 Communication & Live Database Synchronization (running supabase db push on remote Supabase instance)
+
+---
+> ⚠️ **MANDATORY BACKEND DIRECTIVE:**  
+> **Backend requirement: Use Supabase as the primary backend platform. Use Supabase PostgreSQL for the database, Supabase Auth for authentication, Supabase Storage for uploaded evidence, and Supabase Row Level Security for authorization/data protection. Do not introduce another backend service unless there is a documented technical reason and the decision is recorded in `docs/DECISIONS.md`.**
+---
 
 ## 1. What the Project Is
-The **Bangladesh Civic Reporting Platform** is a bilingual (Bangla & English), secure, privacy-preserving incident reporting and public accountability web application. It enables citizens across Bangladesh to document public-interest incidents—such as harassment, extortion, corruption, police misconduct, university abuse, workplace violations, and public safety issues.
+The **Jababdihi (জবাবদিহি)** platform is a bilingual (Bangla & English), secure, privacy-preserving incident reporting and public accountability web application for Bangladesh. It enables citizens across Bangladesh to document public-interest incidents—such as harassment, extortion, corruption, police misconduct, university abuse, workplace violations, and public safety issues.
 
 It enforces the civic doctrine:
 > **REPORT → PROTECT → REVIEW → VERIFY → REFER → TRACK → ANALYZE**

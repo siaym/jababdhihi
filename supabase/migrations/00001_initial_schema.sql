@@ -297,3 +297,26 @@ CREATE POLICY "Audit logs insert only"
 ON audit_logs FOR INSERT
 TO authenticated
 WITH CHECK (true);
+
+-- 13. SUPABASE STORAGE BUCKET INITIALIZATION
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'evidence-vault',
+    'evidence-vault',
+    false, -- Strictly private bucket
+    104857600, -- 100MB limit
+    ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'audio/mpeg', 'audio/wav', 'video/mp4', 'video/webm']
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage bucket RLS policies
+CREATE POLICY "Reviewers can read evidence vault"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (bucket_id = 'evidence-vault');
+
+CREATE POLICY "Anyone can upload to evidence vault via signed tickets"
+ON storage.objects FOR INSERT
+TO public
+WITH CHECK (bucket_id = 'evidence-vault');
+
