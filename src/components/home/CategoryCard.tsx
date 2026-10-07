@@ -6,7 +6,7 @@ import {
   Shield,
   Building2,
   Route,
-  Cross,
+  Activity,
   Leaf,
   Briefcase,
   MoreHorizontal,
@@ -35,79 +35,45 @@ interface CategoryCardProps {
 
 export function CategoryCard({ category }: CategoryCardProps) {
   const renderIcon = () => {
+    const iconClass = "w-4 h-4 sm:w-4.5 sm:h-4.5";
     switch (category.iconType) {
       case 'corruption':
-        return (
-          <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
-            <Banknote className="w-5 h-5" />
-          </div>
-        );
+        return <Banknote className={iconClass} />;
       case 'education':
-        return (
-          <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
-            <GraduationCap className="w-5 h-5" />
-          </div>
-        );
+        return <GraduationCap className={iconClass} />;
       case 'law':
-        return (
-          <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-[#C62828]">
-            <Shield className="w-5 h-5" />
-          </div>
-        );
+        return <Shield className={iconClass} />;
       case 'services':
-        return (
-          <div className="w-10 h-10 rounded-lg bg-cyan-50 flex items-center justify-center text-cyan-700">
-            <Building2 className="w-5 h-5" />
-          </div>
-        );
+        return <Building2 className={iconClass} />;
       case 'infrastructure':
-        return (
-          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-            <Route className="w-5 h-5" />
-          </div>
-        );
+        return <Route className={iconClass} />;
       case 'health':
-        return (
-          <div className="w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
-            <div className="w-5 h-5 flex items-center justify-center font-bold text-lg leading-none">+</div>
-          </div>
-        );
+        return <Activity className={iconClass} />;
       case 'environment':
-        return (
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-            <Leaf className="w-5 h-5" />
-          </div>
-        );
+        return <Leaf className={iconClass} />;
       case 'workplace':
-        return (
-          <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
-            <Briefcase className="w-5 h-5" />
-          </div>
-        );
+        return <Briefcase className={iconClass} />;
       case 'others':
       default:
-        return (
-          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">
-            <MoreHorizontal className="w-5 h-5" />
-          </div>
-        );
+        return <MoreHorizontal className={iconClass} />;
     }
   };
 
   return (
     <Link
       href={`/reports?category=${category.slug}`}
-      className="group flex flex-col items-center justify-center p-4 sm:p-5 rounded-[12px] bg-white border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#D1D5DB] hover:-translate-y-0.5 transition-all text-center min-w-[130px] sm:min-w-[145px]"
+      className="group flex flex-col items-center justify-center p-3.5 sm:p-4 rounded-[10px] bg-white border border-[#E5E7EB] hover:border-[#CBD5E1] shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-sm hover:-translate-y-0.5 transition-all text-center"
     >
-      <div className="mb-3 transition-transform group-hover:scale-105">
+      {/* Restrained Civic Icon Badge (Monochromatic with subtle crimson hover) */}
+      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-[#F1F5F9] text-[#334155] group-hover:bg-[#FEE2E2] group-hover:text-[#C62828] flex items-center justify-center mb-2.5 transition-colors">
         {renderIcon()}
       </div>
 
-      <span className="font-bold text-[13px] sm:text-sm text-[#111827] group-hover:text-[#C62828] transition-colors leading-tight">
+      <span className="font-semibold text-xs sm:text-[13px] text-[#111827] group-hover:text-[#C62828] transition-colors leading-tight">
         {category.name}
       </span>
 
-      <span className="text-[11px] text-[#6B7280] font-normal mt-1">
+      <span className="text-[10px] sm:text-[11px] text-[#6B7280] font-mono mt-0.5">
         {category.reportCount} reports
       </span>
     </Link>
