@@ -1,0 +1,92 @@
+# ARCHITECTURE DECISION RECORDS (ADR)
+
+---
+
+## ADR-001 — External Evidence Links as a Core Architectural Feature
+
+### Context
+Civic reporting platforms in developing countries frequently fail or face massive hosting bills when trying to store, transcode, and stream hours of incident video uploaded directly by citizens. Concurrently, citizens often already share video evidence on social platforms (YouTube, Facebook) or private drives (Google Drive, Dropbox).
+
+### Decision
+Treat external evidence links (YouTube, Facebook public posts, Google Drive, Google Photos, Dropbox) as a first-class feature from day one. Do not automatically download or re-host external video files. Store the validated URL, detect provider, extract platform ID, and embed sandboxed players or provide safe external redirects.
+
+### Consequences & Trade-offs
+- **Positives:** Drastically lowers server storage costs, reduces bandwidth strain, removes liability for hosting copyrighted/pirated media, scales effortlessly.
+- **Trade-offs:** External links may be deleted or made private by third parties. Mitigated by labeling links with review states (`ACCESSIBLE`, `UNAVAILABLE`) and providing a broken link reporting mechanism.
+
+### Date
+2026-10-07
+
+---
+
+## ADR-002 — Dual-Key Anonymous Report Tracking Architecture
+
+### Context
+Citizens reporting sensitive misconduct need to track case progress and communicate with reviewers without creating an account or providing identifiable contact information.
+
+### Decision
+Generate two distinct identifiers upon submission:
+1. `report_number`: Public reference code formatted as `BD-YYYY-NNNNNN` (e.g., `BD-2026-001241`).
+2. `tracking_secret`: A high-entropy 16-character alphanumeric key (e.g., `k9f2-8mpx-4v7q-z1yt`).
+Only the salted cryptographic hash (`Argon2id` / `Bcrypt`) of the tracking secret is stored in the database.
+
+### Consequences & Trade-offs
+- **Positives:** Complete cryptographic protection. If the database is compromised, attackers cannot determine tracking secrets to access confidential reports.
+- **Trade-offs:** If the citizen loses their secret key, recovery is impossible. The UI must clearly warn the user to save/print their tracking credentials upon submission.
+
+### Date
+2026-10-07
+
+---
+
+## ADR-003 — Strict "Allegation-First" Language & Legal Shield
+
+### Context
+Publicly accusing individuals or institutions in Bangladesh without formal judicial proceedings poses severe legal liability (defamation suits, Digital Security Act / Cyber Security Act risks) and moral risks of false accusations.
+
+### Decision
+The platform enforces neutral, objective civic language across the entire codebase, UI, database, and public catalog:
+- "Report" or "Allegation", never "Proven crime" or "Guilty entity".
+- Verification states denote that an allegation has met the platform's published evidentiary standard, not a judicial conviction.
+- Target institutions are given an official right of reply.
+
+### Consequences & Trade-offs
+- **Positives:** Protects the platform legally and ethically; establishes credibility with human rights organizations and public observers.
+- **Trade-offs:** Requires thorough moderator education and careful UI phrasing.
+
+### Date
+2026-10-07
+
+---
+
+## ADR-004 — Bilingual Parity via Route-Level Internationalization
+
+### Context
+Citizens across Bangladesh speak Bengali natively, while international observers, NGOs, and legal agencies require English documentation.
+
+### Decision
+Implement bilingual internationalization (`next-intl`) with explicit locale prefixes (`/[locale]/...`). Store all database taxonomy (categories, status descriptions, emergency resources) with both `_bn` and `_en` localized fields.
+
+### Consequences & Trade-offs
+- **Positives:** Zero discrimination between languages, clean SEO hreflang tags, seamless switching.
+- **Trade-offs:** Requires maintaining dual message bundles for all user interfaces.
+
+### Date
+2026-10-07
+
+---
+
+## ADR-005 — PostgreSQL Row-Level Security (RLS) for RBAC Enforcement
+
+### Context
+Authorization rules for civic platforms must never rely solely on client-side or application-layer route checks, which can be bypassed via direct API manipulation.
+
+### Decision
+Enforce PostgreSQL Row-Level Security (RLS) policies directly in the database. All queries for public users, reporters, reviewers, and admins pass through declarative SQL policies.
+
+### Consequences & Trade-offs
+- **Positives:** Robust zero-trust security; impossible for client leaks or code bugs to expose private evidence to unauthenticated users.
+- **Trade-offs:** Requires careful policy authoring and query optimization to prevent performance bottlenecks.
+
+### Date
+2026-10-07
