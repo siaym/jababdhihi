@@ -184,4 +184,49 @@
 - Replaced previous generic civic layout with pixel-faithful reproduction of the provided reference image.
 
 **Remaining work:**
-- Phase 6: Live backend credentials, real-time message streams, and email dispatchers.
+- Phase 6: Live remote database synchronization (`supabase db push`) and production email dispatchers.
+
+---
+
+### Date: 2026-10-07 (Session 4)
+**Agent:** Antigravity (Advanced Agentic Assistant)  
+**Task:** Supabase Backend Architecture, Storage Integration, REST v1 Routes & Unit Testing Suite  
+**Files changed:**
+- `docs/DECISIONS.md` (Recorded ADR-006: Supabase as Exclusive Primary Backend)
+- `docs/STORAGE.md` (Documented direct upload vs external evidence separation)
+- `docs/AI_CONTEXT.md` (Added mandatory Supabase backend directive)
+- `supabase/migrations/00001_initial_schema.sql` (Added `evidence-vault` storage bucket & policies)
+- `supabase/seed.sql` (Initial seed data for categories, organizations, and resources)
+- `src/lib/supabase/client.ts` (Browser Supabase client via `@supabase/ssr`)
+- `src/lib/supabase/server.ts` (Server Supabase SSR client with cookies)
+- `src/lib/supabase/admin.ts` (Elevated service-role Supabase client)
+- `src/lib/supabase/storage.ts` (Pre-signed PUT upload tickets & pre-signed view URLs for `evidence-vault`)
+- `src/app/api/v1/evidence/upload-ticket/route.ts` (REST upload ticket endpoint)
+- `src/app/api/v1/evidence/signed-view/route.ts` (REST signed view URL endpoint)
+- `src/app/api/v1/evidence/validate-url/route.ts` (REST external URL analysis endpoint)
+- `src/app/api/v1/reports/submit/route.ts` (REST report submission with Supabase persistence and hash storage)
+- `src/app/api/v1/reports/track/route.ts` (REST case tracking with hash verification)
+- `src/app/api/v1/messages/route.ts` (REST two-way case messaging endpoint)
+- `src/app/api/v1/public/reports/route.ts` (REST public reports directory with pagination and privacy sanitization)
+- `src/app/api/v1/public/stats/route.ts` (REST public accountability metrics aggregation)
+- `src/app/track/page.tsx` (Integrated Supabase Realtime channel subscription for live updates)
+- `package.json` (Added `"test": "node --test tests/*.test.mjs"`)
+- `tests/evidence.test.mjs` (Unit test suite for external evidence parsing)
+- `tests/security.test.mjs` (Unit test suite for tracking key generation and SHA-256 hashing)
+
+**Database changes:**
+- Added Supabase storage bucket initialization (`evidence-vault`, 100MB max, private) with RLS policies.
+- Formulated `seed.sql` with categories, organization types, verified organizations, and official civic emergency hotlines.
+
+**Security changes:**
+- Formally enforced ADR-006: Supabase is the mandatory stack. No alternative database/backend allowed.
+- Pre-signed storage upload tickets expire after 300 seconds; pre-signed view URLs expire after 900 seconds.
+- Tracking secret keys are hashed with SHA-256 before storage in PostgreSQL; raw secrets are never retained in DB.
+
+**Tests:**
+- Ran `npm test`: 8/8 unit tests passed (100% pass rate).
+- Ran `npm run build`: All 21 App Router routes compiled cleanly with zero TypeScript/lint errors.
+
+**Remaining work:**
+- Configure live remote Supabase credentials in `.env.local` whenever the user is ready to sync with their cloud project.
+
