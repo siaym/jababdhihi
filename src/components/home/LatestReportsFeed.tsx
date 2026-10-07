@@ -9,6 +9,7 @@ interface ReportCardItem {
   title: string;
   category: string;
   location: string;
+  district: string;
   description: string;
   timeAgo: string;
   statusLabel: string;
@@ -23,6 +24,7 @@ const DEFAULT_LATEST_REPORTS: ReportCardItem[] = [
     title: 'Arbitrary extortion during vehicle documentation checkpoint',
     category: 'Police & Law Enforcement',
     location: 'Mirpur, Dhaka',
+    district: 'Dhaka',
     description:
       'Citizen allegedly detained at a routine motorcycle checkpoint without grounds. Formal receipt for demanded inspection fee was refused.',
     timeAgo: '3 hours ago',
@@ -36,6 +38,7 @@ const DEFAULT_LATEST_REPORTS: ReportCardItem[] = [
     title: 'Dormitory student ragging and unauthorized intimidation',
     category: 'Education & Campus',
     location: 'Hathazari, Chattogram',
+    district: 'Chattogram',
     description:
       'First-year student subjected to late-night intimidation in campus dormitory guest room. Video and audio recordings submitted.',
     timeAgo: '7 hours ago',
@@ -49,6 +52,7 @@ const DEFAULT_LATEST_REPORTS: ReportCardItem[] = [
     title: 'Sub-registry office mutation fee irregularity and bribery demands',
     category: 'Corruption & Bribery',
     location: 'Boalia, Rajshahi',
+    district: 'Rajshahi',
     description:
       'Service-seeker applying for standard land deed certification informed file would not move without unrecorded speed fee.',
     timeAgo: '1 day ago',
@@ -78,11 +82,12 @@ export function LatestReportsFeed() {
               statusLabel = 'VERIFIED FINDING';
               statusType = 'verified';
             } else if (isReferred) {
-              statusLabel = 'REFERRED TO AUTHORITIES';
+              statusLabel = 'REFERRED TO ACC';
               statusType = 'referred';
             }
 
-            const locationStr = [r.upazila_thana || r.area_landmark, r.district || r.division]
+            const district = r.district || r.division || 'Dhaka';
+            const locationStr = [r.upazila_thana || r.area_landmark, district]
               .filter(Boolean)
               .join(', ') || 'Bangladesh';
 
@@ -91,6 +96,7 @@ export function LatestReportsFeed() {
               title: r.public_summary || r.description || 'Public interest allegation',
               category: r.category?.name_en || 'Public Service',
               location: locationStr,
+              district,
               description: r.description || 'Documentation submitted to Jababdihi registry.',
               timeAgo: 'Recently logged',
               statusLabel,
@@ -149,10 +155,10 @@ export function LatestReportsFeed() {
               Public Intake Stream · সাম্প্রতিক প্রতিবেদন
             </span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-[#111827] tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-black text-[#101828] tracking-tight">
             Latest Public Reports
           </h2>
-          <p className="text-xs sm:text-sm text-[#64748B] mt-1">
+          <p className="text-xs sm:text-sm text-[#475467] mt-1">
             Civil allegations and verified public disclosures under active editorial review.
           </p>
         </div>
@@ -165,8 +171,8 @@ export function LatestReportsFeed() {
               onClick={() => setActiveFilter('all')}
               className={`px-3 py-1.5 rounded-md transition-all ${
                 activeFilter === 'all'
-                  ? 'bg-white text-[#111827] shadow-sm'
-                  : 'hover:text-[#111827]'
+                  ? 'bg-white text-[#101828] shadow-sm'
+                  : 'hover:text-[#101828]'
               }`}
             >
               All Reports
@@ -177,7 +183,7 @@ export function LatestReportsFeed() {
               className={`px-3 py-1.5 rounded-md transition-all ${
                 activeFilter === 'verified'
                   ? 'bg-white text-emerald-800 shadow-sm'
-                  : 'hover:text-[#111827]'
+                  : 'hover:text-[#101828]'
               }`}
             >
               Verified
@@ -188,7 +194,7 @@ export function LatestReportsFeed() {
               className={`px-3 py-1.5 rounded-md transition-all ${
                 activeFilter === 'under_review'
                   ? 'bg-white text-amber-800 shadow-sm'
-                  : 'hover:text-[#111827]'
+                  : 'hover:text-[#101828]'
               }`}
             >
               Under Review
@@ -208,9 +214,8 @@ export function LatestReportsFeed() {
       {/* Editorial Report Cards Grid (Status prominent, no popularity voting) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredReports.map((item) => (
-          <Link
+          <div
             key={item.id}
-            href={`/reports/${item.id}`}
             className="group flex flex-col justify-between rounded-xl bg-white border border-[#E2E8F0] p-5 shadow-sm hover:shadow-md hover:border-slate-400 transition-all text-left"
           >
             <div className="space-y-3">
@@ -222,15 +227,23 @@ export function LatestReportsFeed() {
                 </span>
               </div>
 
-              {/* Title */}
-              <h3 className="font-bold text-sm sm:text-[15px] text-[#111827] group-hover:text-[#C62828] transition-colors leading-snug line-clamp-2">
-                {item.title}
-              </h3>
+              {/* Title with link to dossier */}
+              <Link href={`/reports/${item.id}`} className="block">
+                <h3 className="font-bold text-sm sm:text-[15px] text-[#101828] group-hover:text-[#C62828] transition-colors leading-snug line-clamp-2">
+                  {item.title}
+                </h3>
+              </Link>
 
-              {/* Location & Time */}
+              {/* Location with direct navigation link to Map & Time */}
               <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span>{item.location}</span>
+                <Link
+                  href={`/map?division=${encodeURIComponent(item.district)}`}
+                  className="inline-flex items-center gap-1 text-slate-600 hover:text-[#C62828] hover:underline transition-colors font-medium"
+                  title="View this region on the map"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-[#C62828] shrink-0" />
+                  <span>{item.location}</span>
+                </Link>
                 <span className="text-slate-300">·</span>
                 <span>{item.timeAgo}</span>
               </div>
@@ -248,12 +261,15 @@ export function LatestReportsFeed() {
                 <span>{item.readersCount}</span>
               </span>
 
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#111827] group-hover:text-[#C62828] transition-colors">
+              <Link
+                href={`/reports/${item.id}`}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#101828] hover:text-[#C62828] transition-colors"
+              >
                 <span>View Case Dossier</span>
                 <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </span>
+              </Link>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </div>

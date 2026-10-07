@@ -104,30 +104,40 @@ export default function BangladeshMapPage() {
                 </div>
               </div>
 
-              {/* District Breakdown Grid */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-semibold uppercase text-civic-slate-700">
-                  {selectedDivision} Division Districts ({districts.length})
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {districts.map((dist, idx) => {
-                    const distCount = Math.max(1, Math.round(activeStats.count / (districts.length + idx * 0.4)));
-                    return (
-                      <div
-                        key={dist}
-                        className="p-3 bg-white rounded border border-civic-slate-200 flex items-center justify-between text-xs"
-                      >
-                        <span className="font-medium text-civic-slate-800">{dist}</span>
-                        <span className="font-mono font-bold text-civic-navy bg-civic-slate-100 px-2 py-0.5 rounded text-[11px]">
-                          {distCount}
-                        </span>
-                      </div>
-                    );
-                  })}
+                {/* District Breakdown Grid */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold uppercase text-civic-slate-700">
+                      {selectedDivision} Division Districts ({districts.length})
+                    </h4>
+                    <Link
+                      href={`/reports?division=${selectedDivision}`}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#C62828] hover:underline"
+                    >
+                      <span>View All {selectedDivision} Reports</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {districts.map((dist, idx) => {
+                      const distCount = Math.max(1, Math.round(activeStats.count / (districts.length + idx * 0.4)));
+                      return (
+                        <Link
+                          key={dist}
+                          href={`/reports?division=${selectedDivision}&search=${encodeURIComponent(dist)}`}
+                          className="p-3 bg-white hover:bg-slate-50 rounded border border-civic-slate-200 flex items-center justify-between text-xs transition-colors group"
+                        >
+                          <span className="font-medium text-civic-slate-800 group-hover:text-[#C62828] transition-colors">{dist}</span>
+                          <span className="font-mono font-bold text-civic-navy bg-civic-slate-100 px-2 py-0.5 rounded text-[11px]">
+                            {distCount}
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
         </div>
 
         {/* Right Column: Division Ranking & Quick Filters */}
