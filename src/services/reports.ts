@@ -32,9 +32,9 @@ const inMemoryReports: Report[] = [
     custom_organization_name: 'Mirpur Model Thana',
     involved_role_or_title: 'Duty Sub-Inspector & Traffic Team',
     description:
-      'Citizen was allegedly detained at a routine motorcycle checkpoint without grounds. The officer allegedly demanded BDT 5,000 to return vehicle documents despite all registrations being valid. Formal receipt was denied.\n\nFootage submitted by an independent commuter shows the interaction between 20:30 and 20:45, including demands for unreceipted payment and refusal to issue a standard traffic penalty challan.',
+      'A commuter riding through Mirpur 10 roundabout was stopped at an evening traffic checkpoint. According to the commuter and recorded video footage, the duty officer allegedly withheld the vehicle key and demanded 5,000 taka in cash rather than issuing an official government challan slip, despite the rider presenting valid digital registration papers.\n\nThe video shows the conversation between the rider and the officer, the request for a formal receipt, and the refusal to issue one. The officer\'s identity and whether any formal record was later filed at the station have not yet been determined.',
     public_summary:
-      'Video evidence alleging arbitrary extortion during vehicle documentation checkpoint near Mirpur 10 roundabout.',
+      'Commuter questions traffic police cash demand at Mirpur checkpoint',
     status: 'under_review',
     priority: 2,
     is_public: true,
@@ -148,9 +148,9 @@ const inMemoryReports: Report[] = [
     custom_organization_name: 'University of Chittagong',
     involved_role_or_title: 'Dormitory Senior Students Committee',
     description:
-      'First-year student subjected to late-night physical intimidation and forced mental harassment in the dormitory guest room. Victim was threatened with academic harm if reported to authorities.\n\nPhotographic documentation captures the physical environment of the third-floor residential corridor, stamped petition dockets lodged with the Hall Provost, and community assembly records following disclosure of the hazing.',
+      'A first-year student at the University of Chittagong reported being summoned late at night to a dormitory guest room in Alaol Hall and subjected to intimidation and threats by senior students.\n\nPhotographs show the third-floor corridor where students were gathered, the formal complaint petition with an official Provost office date stamp, and a subsequent gathering of students calling for dormitory safety enforcement.',
     public_summary:
-      'Photographic dossier documenting severe dormitory ragging and intimidation of a first-year student.',
+      'Students raise concerns about conditions and hazing in university dormitory',
     status: 'verified',
     priority: 3,
     is_public: true,
@@ -271,9 +271,9 @@ const inMemoryReports: Report[] = [
     custom_organization_name: 'Sub-Registry Office',
     involved_role_or_title: 'Record Clerk & Intermediary (Dalal)',
     description:
-      'Service-seeker applying for land deed certification was informed the file would not proceed without paying an unrecorded "speed fee" of BDT 8,000. Document scan and audio recording submitted.',
+      'Citizens visiting the Boalia Sub-Registry Office in Rajshahi to certify land deeds report being asked for an unrecorded 8,000 taka speed fee on top of lawful government fees before files would be processed.\n\nDocuments show official registration fees should total 2,400 taka under statutory law, while penciled amounts on the file jacket reflect the higher demanded amount.',
     public_summary:
-      'Report alleging unauthorized bribery demands for standard land registry services.',
+      'Service-seekers report unrecorded speed fees at Boalia land registry office',
     status: 'referred',
     priority: 2,
     is_public: true,

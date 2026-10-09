@@ -163,72 +163,68 @@ export function CommentsSection({
   return (
     <div className="space-y-6 pt-4">
       {/* Header Row */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-200">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-[#C62828]" />
-          <h3 className="text-base sm:text-lg font-bold text-slate-900">
-            {locale === 'bn' ? 'নাগরিক আলোচনা ও মন্তব্য' : 'Community Discussion'}{' '}
-            <span className="text-xs font-semibold text-slate-500 ml-1">
+      <div className="space-y-1.5 pb-2 border-b border-slate-200">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-[#C62828]" />
+            <span>{locale === 'bn' ? 'মানুষ কী বলছে?' : 'What are people saying?'}</span>
+            <span className="text-xs font-semibold text-slate-500 font-mono">
               ({comments.length})
             </span>
           </h3>
-        </div>
 
-        {/* Sort Controls */}
-        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-          <span className="font-medium">{locale === 'bn' ? 'সাজান:' : 'Sort:'}</span>
-          <button
-            onClick={() => setSortBy('helpful')}
-            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-              sortBy === 'helpful'
-                ? 'bg-slate-900 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            {locale === 'bn' ? 'জনপ্রিয়' : 'Top'}
-          </button>
-          <button
-            onClick={() => setSortBy('newest')}
-            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-              sortBy === 'newest'
-                ? 'bg-slate-900 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            {locale === 'bn' ? 'নতুন' : 'Newest'}
-          </button>
+          {/* Sort Controls */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span className="font-medium">{locale === 'bn' ? 'সাজান:' : 'Sort:'}</span>
+            <button
+              onClick={() => setSortBy('helpful')}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                sortBy === 'helpful'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {locale === 'bn' ? 'শীর্ষ' : 'Top'}
+            </button>
+            <button
+              onClick={() => setSortBy('newest')}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                sortBy === 'newest'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {locale === 'bn' ? 'নতুন' : 'Newest'}
+            </button>
+          </div>
         </div>
-      </div>
-
-      {/* Doctrine Banner */}
-      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5 text-xs text-slate-600">
-        <ShieldAlert className="w-4 h-4 text-[#C62828] shrink-0 mt-0.5" />
-        <div className="space-y-0.5">
-          <p className="font-semibold text-slate-800">
-            {locale === 'bn' ? 'পর্যালোচিত কমিউনিটি গাইডলাইন' : 'Moderated Citizen Forum'}
-          </p>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            {locale === 'bn'
-              ? 'মন্তব্য নাগরিক পর্যবেক্ষণ প্রকাশ করে, কোনো আনুষ্ঠানিক রায় নয়। ব্যক্তিগত তথ্য ফাঁস (doxxing), হুমকি বা কুৎসা রটনা নিষিদ্ধ।'
-              : 'Comments reflect citizen observations and public dialogue, not official verdicts. Defamation, doxxing, harassment, and unsupported accusations are strictly prohibited.'}
-          </p>
-        </div>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          {locale === 'bn'
+            ? 'নাগরিকদের শেয়ার করা অতিরিক্ত তথ্য, প্রত্যক্ষদর্শীর বিবরণ, তথ্য সংশোধন ও প্রাসঙ্গিক আপডেট পড়ুন।'
+            : 'Read additional information, eyewitness accounts, corrections, and relevant updates shared by the community.'}
+        </p>
       </div>
 
       {/* New Comment Form */}
-      <form onSubmit={handleSubmit} className="p-4 rounded-xl border border-slate-200 bg-white shadow-sm space-y-3">
+      <form onSubmit={handleSubmit} className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-white shadow-sm space-y-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-bold text-slate-800">
+            {locale === 'bn' ? 'তথ্য বা মন্তব্য যোগ করুন:' : 'Add useful information or a comment:'}
+          </span>
+          <span className="text-[11px] text-slate-400">
+            {locale === 'bn' ? 'পর্যালোচিত আলোচনা' : 'Moderated discussion'}
+          </span>
+        </div>
+
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={authorName}
             onChange={(e) => setAuthorName(e.target.value)}
-            placeholder={locale === 'bn' ? 'আপনার নাম বা ছদ্মনাম (ঐচ্ছিক)' : 'Display name or pseudonym (optional)'}
+            placeholder={locale === 'bn' ? 'আপনার নাম বা পরিচয় (ঐচ্ছিক)' : 'Your name or handle (optional)'}
             className="w-full sm:w-64 px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
             maxLength={50}
           />
-          <span className="text-[11px] text-slate-400 hidden sm:inline">
-            {locale === 'bn' ? 'গোপনীয়তা অক্ষুণ্ণ থাকবে' : 'Identity protected'}
-          </span>
         </div>
 
         <textarea
@@ -237,8 +233,8 @@ export function CommentsSection({
           onChange={(e) => setCommentText(e.target.value)}
           placeholder={
             locale === 'bn'
-              ? 'এই প্রতিবেদনের প্রমাণ ও ঘটনা সম্পর্কিত তথ্যভিত্তিক মন্তব্য লিখুন...'
-              : 'Add factual observations, corroboration, or civic context regarding this report...'
+              ? 'প্রাসঙ্গিক তথ্য, প্রত্যক্ষদর্শীর বিবরণ বা মন্তব্য যোগ করুন...'
+              : 'Add useful information, an eyewitness account, or a comment…'
           }
           className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400 resize-none leading-relaxed"
           maxLength={1000}
@@ -247,17 +243,19 @@ export function CommentsSection({
 
         <div className="flex items-center justify-between pt-1">
           <span className="text-[11px] text-slate-400">
-            {1000 - commentText.length} {locale === 'bn' ? 'অক্ষর বাকি' : 'characters remaining'}
+            {locale === 'bn'
+              ? 'ব্যক্তিগত তথ্য বা আক্রমণাত্মক মন্তব্য ফিল্টার করা হবে।'
+              : 'Doxxing, abuse, and personal accusations are prohibited.'}
           </span>
 
           <Button
             type="submit"
             size="sm"
             disabled={isSubmitting || !commentText.trim()}
-            className="bg-[#C62828] hover:bg-[#B71C1C] text-white text-xs font-semibold px-4 gap-1.5"
+            className="bg-[#C62828] hover:bg-[#B71C1C] text-white text-xs font-semibold px-4 gap-1.5 rounded-lg"
           >
             <Send className="w-3.5 h-3.5" />
-            <span>{isSubmitting ? 'Posting...' : locale === 'bn' ? 'মন্তব্য প্রকাশ করুন' : 'Post Comment'}</span>
+            <span>{isSubmitting ? 'Submitting...' : locale === 'bn' ? 'আলোচনায় যুক্ত হন' : 'Join the discussion'}</span>
           </Button>
         </div>
 
