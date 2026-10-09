@@ -14,7 +14,10 @@ VALUES
   ('c0000001-0000-0000-0000-000000000006', 'health', 'Health', 'স্বাস্থ্য ও চিকিৎসা', 'Public hospital misconduct, withheld medicine, unauthorized patient admission fees.', 'সরকারি হাসপাতালে অবহেলা, ওষুধ মজুতদারি বা অবৈধ রোগী ভর্তি ফি।', 'Cross', 6),
   ('c0000001-0000-0000-0000-000000000007', 'environment', 'Environment', 'পরিবেশ ও নদী দখল', 'Illegal river encroachment, industrial pollution, toxic dumping, deforestation.', 'নদী দখল, শিল্পকারখানার বর্জ্য দূষণ বা পরিবেশ বিধ্বংসী কর্মকাণ্ড।', 'Leaf', 7),
   ('c0000001-0000-0000-0000-000000000008', 'workplace', 'Workplace', 'কর্মক্ষেত্র ও শ্রম', 'Unsafe conditions, wage theft, employer harassment, discriminatory termination.', 'কর্মস্থলে হয়রানি, মজুরি আত্মসাৎ, অন্যায় ছাঁটাই বা ঝুঁকিপূর্ণ পরিবেশ।', 'Briefcase', 8),
-  ('c0000001-0000-0000-0000-000000000009', 'other', 'Others', 'অন্যান্য জনস্বার্থ', 'Controlled classification for incidents of strong public interest.', 'জনস্বার্থে গুরুত্বপূর্ণ অন্যান্য যেকোনো অনিয়ম বা অন্যায্য ঘটনা।', 'MoreHorizontal', 9)
+  ('c0000001-0000-0000-0000-000000000010', 'abuse_harassment', 'Abuse & Harassment', 'নির্যাতন ও হয়রানি', 'Physical abuse, verbal harassment, sexual harassment, bullying, ragging, or stalking.', 'শারীরিক নির্যাতন, মৌখিক হয়রানি, যৌন হয়রানি, বুলিং, র‍্যাগিং অথবা মানসিক নিপীড়ন।', 'AlertTriangle', 10),
+  ('c0000001-0000-0000-0000-000000000011', 'violence', 'Violence & Threats', 'সহিংসতা ও হুমকি', 'Physical violence, death threats, public or institutional violence.', 'শারীরিক মারধর, প্রাণনাশের হুমকি, অস্ত্র প্রদর্শন বা সংগঠিত সহিংসতা।', 'ShieldAlert', 11),
+  ('c0000001-0000-0000-0000-000000000012', 'online', 'Online & Cyber Crime', 'সাইবার ও অনলাইন অপরাধ', 'Cyber harassment, blackmail, non-consensual images, or digital fraud.', 'অনলাইন হয়রানি, ব্ল্যাকমেইল, ব্যক্তিগত ছবি অপব্যবহার বা ডিজিটাল প্রতারণা।', 'Globe', 12),
+  ('c0000001-0000-0000-0000-000000000009', 'other', 'Others', 'অন্যান্য জনস্বার্থ', 'Controlled classification for incidents of strong public interest.', 'জনস্বার্থে গুরুত্বপূর্ণ অন্যান্য যেকোনো অনিয়ম বা অন্যায্য ঘটনা।', 'MoreHorizontal', 99)
 ON CONFLICT (code) DO NOTHING;
 
 -- 2. SEED ORGANIZATION TYPES

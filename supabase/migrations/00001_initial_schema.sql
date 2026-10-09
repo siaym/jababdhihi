@@ -142,6 +142,10 @@ CREATE TABLE IF NOT EXISTS reports (
     is_public BOOLEAN NOT NULL DEFAULT false,
     verified_status BOOLEAN NOT NULL DEFAULT false,
     
+    reporter_name TEXT,
+    reporter_email TEXT,
+    reporter_phone TEXT,
+    
     assigned_reviewer_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
     assigned_senior_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
     

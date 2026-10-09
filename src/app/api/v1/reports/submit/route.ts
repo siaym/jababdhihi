@@ -8,6 +8,7 @@ import { analyzeExternalUrl } from '@/services/evidence';
 import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 import { canAcceptSubmissions } from '@/lib/security/safe-mode';
 import { validateSafeUrl } from '@/lib/security/ssrf';
+import { INITIAL_CATEGORIES } from '@/config/constants';
 
 export async function POST(req: NextRequest) {
   try {
@@ -114,12 +115,40 @@ export async function POST(req: NextRequest) {
     const trackingSecret = generateTrackingSecret();
     const secretHash = crypto.createHash('sha256').update(trackingSecret).digest('hex');
 
+    // Resolve valid UUID for category_id
+    let resolvedCategoryId = input.category_id;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.category_id);
+    if (!isUuid) {
+      const match = INITIAL_CATEGORIES.find(
+        (c) => c.id === input.category_id || c.code === input.category_id
+      );
+      const code = match ? match.code : input.category_id;
+      const { data: catRow } = await admin
+        .from('report_categories')
+        .select('id')
+        .eq('code', code)
+        .maybeSingle();
+
+      if (catRow?.id) {
+        resolvedCategoryId = catRow.id;
+      } else {
+        const { data: fallbackCat } = await admin
+          .from('report_categories')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+        if (fallbackCat?.id) {
+          resolvedCategoryId = fallbackCat.id;
+        }
+      }
+    }
+
     // Insert Report
     const { data: reportData, error: reportError } = await admin
       .from('reports')
       .insert({
         report_number: reportNumber,
-        category_id: input.category_id,
+        category_id: resolvedCategoryId,
         privacy_mode: input.privacy_mode,
         incident_date: input.incident_date,
         approximate_time: input.approximate_time || null,
@@ -147,6 +176,20 @@ export async function POST(req: NextRequest) {
 
     if (reportError || !reportData) {
       console.error('Database report insert error:', reportError);
+      // If table doesn't exist yet in Supabase schema, fall back to in-memory submission
+      if (reportError?.code === 'PGRST205') {
+        console.warn('Reports table not yet migrated, saving in-memory draft.');
+        const inMemoryResult = await submitInMemory(input);
+        return NextResponse.json({
+          success: true,
+          data: {
+            report_number: inMemoryResult.reportNumber,
+            tracking_secret: inMemoryResult.trackingSecret,
+            report_id: inMemoryResult.reportId,
+            status: 'submitted',
+          },
+        });
+      }
       return NextResponse.json(
         {
           success: false,

@@ -17,9 +17,18 @@ export async function GET() {
     }
 
     // Supabase aggregation
-    const { count: totalReports } = await admin
+    const { count: totalReports, error: statsError } = await admin
       .from('reports')
       .select('*', { count: 'exact', head: true });
+
+    if (statsError) {
+      console.warn('Reports table query error, falling back to in-memory stats:', statsError.message);
+      const stats = await getInMemoryStats();
+      return NextResponse.json({
+        success: true,
+        data: stats,
+      });
+    }
 
     const { count: underReview } = await admin
       .from('reports')
