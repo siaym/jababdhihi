@@ -108,8 +108,8 @@ export default function PublicReportDetailPage() {
   const hasVideo = videoEvidence.length > 0;
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="min-h-screen bg-[#F6F1E8]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <ReportStoryLayout
           report={report}
           videoEvidence={videoEvidence}

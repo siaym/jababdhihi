@@ -9,12 +9,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        classic: {
+          navy: "#17263C",
+          red: "#C62828",
+          ivory: "#F6F1E8",
+          gold: "#D8B56D",
+          charcoal: "#263238",
+          white: "#FFFFFF",
+        },
         brand: {
           red: "#C62828",
           redHover: "#B71C1C",
           redLight: "#FFEBEE",
-          charcoal: "#111827",
-          bg: "#F8F7F3",
+          charcoal: "#263238",
+          bg: "#F6F1E8",
           card: "#FFFFFF",
           muted: "#6B7280",
           border: "#E5E7EB",
