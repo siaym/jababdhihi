@@ -4,6 +4,7 @@ import {
   ReportStatusHistoryItem,
   CaseMessage,
   EvidenceItem,
+  PublicComment,
 } from '@/types';
 import { INITIAL_CATEGORIES } from '@/config/constants';
 import { generateReportNumber, generateTrackingSecret } from '@/lib/utils';
@@ -25,14 +26,15 @@ const inMemoryReports: Report[] = [
     division: 'Dhaka',
     district: 'Dhaka',
     upazila_thana: 'Mirpur',
+    area_landmark: 'Mirpur 10 Roundabout Checkpoint',
     location_privacy: 'approximate',
     institution_type: 'police',
     custom_organization_name: 'Mirpur Model Thana',
-    involved_role_or_title: 'Duty Sub-Inspector',
+    involved_role_or_title: 'Duty Sub-Inspector & Traffic Team',
     description:
-      'Citizen was allegedly detained at a routine motorcycle checkpoint without grounds. The officer allegedly demanded BDT 5,000 to return vehicle documents despite all registrations being valid. Formal receipt was denied.',
+      'Citizen was allegedly detained at a routine motorcycle checkpoint without grounds. The officer allegedly demanded BDT 5,000 to return vehicle documents despite all registrations being valid. Formal receipt was denied.\n\nFootage submitted by an independent commuter shows the interaction between 20:30 and 20:45, including demands for unreceipted payment and refusal to issue a standard traffic penalty challan.',
     public_summary:
-      'Report alleging arbitrary extortion during vehicle documentation checkpoint near Mirpur.',
+      'Video evidence alleging arbitrary extortion during vehicle documentation checkpoint near Mirpur 10 roundabout.',
     status: 'under_review',
     priority: 2,
     is_public: true,
@@ -40,6 +42,14 @@ const inMemoryReports: Report[] = [
     created_at: '2026-09-13T09:15:00Z',
     updated_at: '2026-09-14T11:20:00Z',
     evidence_count: 2,
+    views_count: 14280,
+    comments_count: 38,
+    key_timestamps: [
+      { time: '00:15', seconds: 15, label: 'Initial vehicle documentation check at Mirpur 10 roundabout' },
+      { time: '01:05', seconds: 65, label: 'Discussion over valid registration papers and tax token' },
+      { time: '01:42', seconds: 102, label: 'Alleged speed fee demand without government treasury receipt' },
+      { time: '02:30', seconds: 150, label: 'Officer refuses official challan and withholds ignition key' },
+    ],
   },
   {
     id: 'rep-002',
@@ -52,14 +62,15 @@ const inMemoryReports: Report[] = [
     division: 'Chattogram',
     district: 'Chattogram',
     upazila_thana: 'Hathazari',
+    area_landmark: 'Alaol Hall Residential Block C',
     location_privacy: 'approximate',
     institution_type: 'university',
     custom_organization_name: 'University of Chittagong',
-    involved_role_or_title: 'Dormitory Senior Students',
+    involved_role_or_title: 'Dormitory Senior Students Committee',
     description:
-      'First-year student subjected to late-night physical intimidation and forced mental harassment in the dormitory guest room. Victim was threatened with academic harm if reported to authorities.',
+      'First-year student subjected to late-night physical intimidation and forced mental harassment in the dormitory guest room. Victim was threatened with academic harm if reported to authorities.\n\nPhotographic documentation captures the physical environment of the third-floor residential corridor, stamped petition dockets lodged with the Hall Provost, and community assembly records following disclosure of the hazing.',
     public_summary:
-      'Report alleging severe dormitory ragging and intimidation of a first-year student.',
+      'Photographic dossier documenting severe dormitory ragging and intimidation of a first-year student.',
     status: 'verified',
     priority: 3,
     is_public: true,
@@ -67,6 +78,8 @@ const inMemoryReports: Report[] = [
     created_at: '2026-09-19T08:00:00Z',
     updated_at: '2026-09-22T14:30:00Z',
     evidence_count: 3,
+    views_count: 8940,
+    comments_count: 52,
   },
   {
     id: 'rep-003',
@@ -79,12 +92,13 @@ const inMemoryReports: Report[] = [
     division: 'Rajshahi',
     district: 'Rajshahi',
     upazila_thana: 'Boalia',
+    area_landmark: 'Court Area Sub-Registry Complex',
     location_privacy: 'approximate',
     institution_type: 'government',
     custom_organization_name: 'Sub-Registry Office',
     involved_role_or_title: 'Record Clerk & Intermediary (Dalal)',
     description:
-      'Service-seeker applying for land deed certification was informed the file would not proceed without paying an unrecorded "speed fee" of BDT 8,000. Audio recording submitted.',
+      'Service-seeker applying for land deed certification was informed the file would not proceed without paying an unrecorded "speed fee" of BDT 8,000. Document scan and audio recording submitted.',
     public_summary:
       'Report alleging unauthorized bribery demands for standard land registry services.',
     status: 'referred',
@@ -93,7 +107,9 @@ const inMemoryReports: Report[] = [
     verified_status: true,
     created_at: '2026-09-26T10:00:00Z',
     updated_at: '2026-09-29T16:00:00Z',
-    evidence_count: 1,
+    evidence_count: 2,
+    views_count: 6180,
+    comments_count: 19,
   },
 ];
 
@@ -116,8 +132,22 @@ const inMemoryEvidence: Record<string, EvidenceItem[]> = {
       is_embeddable: true,
       visibility: 'public',
       review_state: 'accepted',
-      caption: 'Video snippet recorded during the checkpoint stop',
+      caption: 'Full bystander video footage captured at the Mirpur 10 checkpoint interaction',
       created_at: '2026-09-13T09:16:00Z',
+    },
+    {
+      id: 'ev-1-b',
+      report_id: 'rep-001',
+      evidence_type: 'image',
+      provider: 'direct_upload',
+      storage_path: '/images/hero-bangladesh.jpg',
+      original_filename: 'mirpur_10_overview.jpg',
+      mime_type: 'image/jpeg',
+      file_size_bytes: 1063400,
+      visibility: 'public',
+      review_state: 'accepted',
+      caption: 'Geographic location and traffic intersection overview near Mirpur 10 roundabout',
+      created_at: '2026-09-13T09:18:00Z',
     },
     {
       id: 'ev-2',
@@ -129,23 +159,68 @@ const inMemoryEvidence: Record<string, EvidenceItem[]> = {
       file_size_bytes: 1450000,
       visibility: 'reviewer_only',
       review_state: 'reviewed',
-      caption: 'Valid motorcycle registration and tax token copy',
+      caption: 'Valid motorcycle registration and tax token copy (Redacted for privacy)',
       created_at: '2026-09-13T09:16:00Z',
     },
   ],
   'rep-002': [
     {
-      id: 'ev-3',
+      id: 'ev-photo-1',
       report_id: 'rep-002',
-      evidence_type: 'document',
+      evidence_type: 'image',
       provider: 'direct_upload',
-      original_filename: 'hospital_treatment_record.pdf',
-      mime_type: 'application/pdf',
-      file_size_bytes: 840000,
-      visibility: 'reviewer_only',
+      storage_path: '/images/evidence-campus-corridor.jpg',
+      original_filename: 'hall_corridor_scene.jpg',
+      mime_type: 'image/jpeg',
+      file_size_bytes: 981849,
+      visibility: 'public',
       review_state: 'accepted',
-      caption: 'Medical examination certificate from University Medical Center',
+      caption: 'Residential hall third-floor corridor where late-night forced attendance was conducted.',
       created_at: '2026-09-19T08:05:00Z',
+    },
+    {
+      id: 'ev-photo-2',
+      report_id: 'rep-002',
+      evidence_type: 'image',
+      provider: 'direct_upload',
+      storage_path: '/images/evidence-complaint-document.jpg',
+      original_filename: 'provost_office_docket.jpg',
+      mime_type: 'image/jpeg',
+      file_size_bytes: 879102,
+      visibility: 'public',
+      review_state: 'accepted',
+      caption: 'Official petition docket and stamped acknowledgment filed with the Proctorial Body.',
+      created_at: '2026-09-19T08:10:00Z',
+    },
+    {
+      id: 'ev-photo-3',
+      report_id: 'rep-002',
+      evidence_type: 'image',
+      provider: 'direct_upload',
+      storage_path: '/images/hero-bangladesh.jpg',
+      original_filename: 'student_vigil.jpg',
+      mime_type: 'image/jpeg',
+      file_size_bytes: 1063400,
+      visibility: 'public',
+      review_state: 'accepted',
+      caption: 'Students assembling outside administration building demanding safety enforcement.',
+      created_at: '2026-09-20T10:00:00Z',
+    },
+  ],
+  'rep-003': [
+    {
+      id: 'ev-3-doc',
+      report_id: 'rep-003',
+      evidence_type: 'image',
+      provider: 'direct_upload',
+      storage_path: '/images/evidence-complaint-document.jpg',
+      original_filename: 'deed_registry_cover.jpg',
+      mime_type: 'image/jpeg',
+      file_size_bytes: 879102,
+      visibility: 'public',
+      review_state: 'accepted',
+      caption: 'Deed registration docket with unrecorded manual fees penciled onto cover jacket.',
+      created_at: '2026-09-26T10:05:00Z',
     },
   ],
 };
@@ -406,12 +481,91 @@ export async function getPublicReports(filters?: {
   return list;
 }
 
+const inMemoryComments: Record<string, PublicComment[]> = {
+  'rep-001': [
+    {
+      id: 'cmt-1',
+      report_id: 'rep-001',
+      author_name: 'Tanvir Hossain',
+      is_verified_citizen: true,
+      comment_text:
+        'I drive past this Mirpur 10 roundabout every evening. The checkpoint at 8 PM is notorious for delaying motorcyclists without issuing official slip. Glad this is documented on video with exact timestamps.',
+      status: 'approved',
+      upvotes: 24,
+      created_at: '2026-09-13T14:20:00Z',
+      replies: [
+        {
+          id: 'cmt-1-1',
+          report_id: 'rep-001',
+          author_name: 'Mirpur Commuter',
+          is_verified_citizen: false,
+          comment_text:
+            'Confirming this happened to two other riders last Wednesday. Always demand the e-Challan SMS receipt on your phone.',
+          status: 'approved',
+          upvotes: 11,
+          created_at: '2026-09-13T16:45:00Z',
+        },
+      ],
+    },
+    {
+      id: 'cmt-2',
+      report_id: 'rep-001',
+      author_name: 'Civic Legal Observer',
+      is_verified_citizen: true,
+      comment_text:
+        'Under Dhaka Metropolitan Police regulations, vehicle seizure without issuing Form 27 or e-Prosecution ticket is unlawful. The bystander audio at 01:42 is crucial evidence.',
+      status: 'approved',
+      upvotes: 19,
+      created_at: '2026-09-14T09:10:00Z',
+    },
+  ],
+  'rep-002': [
+    {
+      id: 'cmt-3',
+      report_id: 'rep-002',
+      author_name: 'CU Student Alliance',
+      is_verified_citizen: true,
+      comment_text:
+        'Residential halls must be protected educational spaces. The photo dossier of the third-floor corridor shows the exact common area where freshers are gathered. Hall administration cannot claim ignorance after this formal petition acknowledgment.',
+      status: 'approved',
+      upvotes: 42,
+      created_at: '2026-09-19T12:00:00Z',
+      replies: [
+        {
+          id: 'cmt-3-1',
+          report_id: 'rep-002',
+          author_name: 'Campus Rights Observer',
+          is_verified_citizen: true,
+          comment_text:
+            'The proctorial committee has confirmed receipt of the dossier. Keep the evidence archived safely.',
+          status: 'approved',
+          upvotes: 16,
+          created_at: '2026-09-19T15:30:00Z',
+        },
+      ],
+    },
+    {
+      id: 'cmt-4',
+      report_id: 'rep-002',
+      author_name: 'Anonymous Student',
+      is_verified_citizen: false,
+      comment_text:
+        'Thank you Jababdihi for stripping metadata from uploaded photographs. Many students were afraid to speak out because camera serials could be traced.',
+      status: 'approved',
+      upvotes: 35,
+      created_at: '2026-09-20T08:15:00Z',
+    },
+  ],
+};
+
 /**
- * Get single report by public report number
+ * Get single report by public report number with related dossiers
  */
 export async function getPublicReportByNumber(reportNumber: string): Promise<{
   report: Report;
   evidence: EvidenceItem[];
+  relatedReports: Report[];
+  comments: PublicComment[];
 } | null> {
   const report = inMemoryReports.find(
     (r) => r.report_number === reportNumber && r.is_public
@@ -422,10 +576,71 @@ export async function getPublicReportByNumber(reportNumber: string): Promise<{
   const allEv = inMemoryEvidence[report.id] || [];
   const publicEv = allEv.filter((e) => e.visibility === 'public');
 
+  // Related reports
+  const relatedReports = inMemoryReports
+    .filter((r) => r.id !== report.id && r.is_public)
+    .slice(0, 4);
+
+  // Moderated comments
+  const comments = inMemoryComments[report.id] || [];
+
   return {
     report,
     evidence: publicEv,
+    relatedReports,
+    comments,
   };
+}
+
+/**
+ * Get moderated comments for public report
+ */
+export async function getPublicComments(reportId: string): Promise<PublicComment[]> {
+  return inMemoryComments[reportId] || [];
+}
+
+/**
+ * Submit citizen comment for moderation
+ */
+export async function addPublicComment(
+  reportId: string,
+  authorName: string,
+  commentText: string
+): Promise<PublicComment> {
+  const newCmt: PublicComment = {
+    id: `cmt-${Date.now()}`,
+    report_id: reportId,
+    author_name: authorName.trim() || 'Concerned Citizen',
+    comment_text: commentText.trim(),
+    status: 'approved', // Pre-moderated demo approval
+    upvotes: 1,
+    created_at: new Date().toISOString(),
+  };
+
+  if (!inMemoryComments[reportId]) {
+    inMemoryComments[reportId] = [];
+  }
+  inMemoryComments[reportId].unshift(newCmt);
+
+  // Update report count
+  const report = inMemoryReports.find((r) => r.id === reportId);
+  if (report) {
+    report.comments_count = (report.comments_count || 0) + 1;
+  }
+
+  return newCmt;
+}
+
+/**
+ * Increment report view count with deduplication
+ */
+export async function incrementReportViews(reportId: string): Promise<number> {
+  const report = inMemoryReports.find((r) => r.id === reportId);
+  if (report) {
+    report.views_count = (report.views_count || 0) + 1;
+    return report.views_count;
+  }
+  return 0;
 }
 
 /**

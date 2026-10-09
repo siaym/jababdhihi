@@ -83,6 +83,22 @@ export interface Report {
   created_at: string;
   updated_at: string;
   evidence_count?: number;
+  views_count?: number;
+  comments_count?: number;
+  key_timestamps?: { time: string; seconds: number; label: string }[];
+}
+
+export interface PublicComment {
+  id: string;
+  report_id: string;
+  author_name: string;
+  is_verified_citizen?: boolean;
+  comment_text: string;
+  status: 'approved' | 'pending' | 'flagged';
+  upvotes: number;
+  created_at: string;
+  parent_id?: string | null;
+  replies?: PublicComment[];
 }
 
 export interface EvidenceItem {
