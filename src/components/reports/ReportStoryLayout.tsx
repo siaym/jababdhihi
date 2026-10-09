@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Play,
@@ -19,6 +19,9 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
+  Minimize2,
+  Columns2,
+  RectangleHorizontal,
   Film,
   Camera,
   Phone,
@@ -62,6 +65,11 @@ export function ReportStoryLayout({
     initialMode === 'video' && hasVideo ? 'video' : hasPhotos ? 'image' : 'video'
   );
 
+  // Large Window / Theater mode & Fullscreen state
+  const [isLargeWindow, setIsLargeWindow] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+
   // Video state
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -78,6 +86,87 @@ export function ReportStoryLayout({
   const [isSaved, setIsSaved] = useState(false);
   const [flagSubmitted, setFlagSubmitted] = useState(false);
 
+  // Load user preference for large window mode
+  useEffect(() => {
+    try {
+      const savedMode = localStorage.getItem('jababdihi_large_window_mode');
+      if (savedMode === 'true') {
+        setIsLargeWindow(true);
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  const toggleLargeWindow = () => {
+    setIsLargeWindow((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('jababdihi_large_window_mode', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Track fullscreen changes across browsers
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    document.addEventListener('webkitfullscreenchange', handleFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleFsChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (typeof document === 'undefined') return;
+    const container = videoContainerRef.current;
+    if (!document.fullscreenElement) {
+      if (container?.requestFullscreen) {
+        container.requestFullscreen().catch(() => {});
+      } else if ((container as any)?.webkitRequestFullscreen) {
+        (container as any).webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if ((document as any)?.webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
+    }
+  };
+
+  // Keyboard shortcuts: 'T' for Large window / Theater, 'F' for Fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable ||
+          target.closest('input, textarea, [contenteditable="true"]'))
+      ) {
+        return;
+      }
+
+      if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        toggleLargeWindow();
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Saved reports in localStorage
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('jababdihi_saved_reports') || '[]');
@@ -171,302 +260,342 @@ export function ReportStoryLayout({
 
   const formattedViews = (report.views_count || 14280).toLocaleString();
 
-  return (
-    <article className="space-y-8 text-[#263238]">
-      {/* 1. TOP BREADCRUMB & UTILITY BAR */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs pb-3 border-b border-[#E5DFD5]">
-        <div className="flex items-center gap-2">
-          <Link
-            href="/reports"
-            className="inline-flex items-center gap-1.5 font-bold text-[#17263C] hover:text-[#C62828] transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>{locale === 'bn' ? 'সকল প্রতিবেদনে ফিরে যান' : 'Back to reports'}</span>
-          </Link>
-          <span className="text-slate-300">/</span>
-          <span className="px-2.5 py-0.5 rounded-full bg-white border border-[#E5DFD5] text-[#17263C] font-semibold">
-            {report.category?.name_en || report.institution_type || 'Public Interest'}
-          </span>
-        </div>
-
-        {/* Quiet utility buttons */}
-        <div className="flex items-center gap-2 text-slate-600">
+  // 1. TOOLBAR: MEDIA SELECTION & WINDOW VIEW MODES
+  const renderMediaToolbar = () => (
+    <div className="flex flex-wrap items-center justify-between gap-2 pb-1">
+      {/* Media Mode Switcher (Video vs Photos) */}
+      {hasVideo && hasPhotos ? (
+        <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-[#E5DFD5]">
           <button
-            onClick={() => setIsShareOpen(true)}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded hover:bg-white hover:shadow-xs transition-all text-[#17263C]"
-            title="Share"
-          >
-            <Share2 className="w-3.5 h-3.5 text-slate-500" />
-            <span>{locale === 'bn' ? 'শেয়ার' : 'Share'}</span>
-          </button>
-
-          <button
-            onClick={toggleSave}
-            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded hover:bg-white hover:shadow-xs transition-all ${
-              isSaved ? 'text-emerald-800 font-bold' : 'text-[#17263C]'
+            onClick={() => setActiveMediaMode('video')}
+            className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              activeMediaMode === 'video'
+                ? 'bg-[#17263C] text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100'
             }`}
-            title="Save"
           >
-            {isSaved ? <BookmarkCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Bookmark className="w-3.5 h-3.5 text-slate-500" />}
-            <span>{isSaved ? (locale === 'bn' ? 'সংরক্ষিত' : 'Saved') : (locale === 'bn' ? 'সংরক্ষণ' : 'Save')}</span>
+            <Film className="w-3.5 h-3.5 text-red-400" />
+            <span>{locale === 'bn' ? 'ভিডিও' : 'Watch video'}</span>
           </button>
-
           <button
-            onClick={handlePrint}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded hover:bg-white hover:shadow-xs transition-all text-[#17263C] hidden sm:inline-flex"
-            title="Print"
+            onClick={() => setActiveMediaMode('image')}
+            className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              activeMediaMode === 'image'
+                ? 'bg-[#17263C] text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
           >
-            <Printer className="w-3.5 h-3.5 text-slate-500" />
-            <span>{locale === 'bn' ? 'প্রিন্ট' : 'Print'}</span>
-          </button>
-
-          <button
-            onClick={() => setFlagSubmitted(true)}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-white text-slate-400 hover:text-[#C62828] transition-colors"
-            title="Flag inaccurate info"
-          >
-            <Flag className="w-3.5 h-3.5" />
+            <Camera className="w-3.5 h-3.5 text-blue-400" />
+            <span>{locale === 'bn' ? 'ছবিগুলো' : 'Browse photos'}</span>
           </button>
         </div>
-      </div>
-
-      {flagSubmitted && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between">
-          <span>
-            {locale === 'bn'
-              ? 'আপনার পর্যালোচনার অনুরোধ গৃহীত হয়েছে। আমাদের টিম বিষয়টি খতিয়ে দেখবে।'
-              : 'Your inquiry has been received. Our review desk will re-verify the material.'}
-          </span>
-          <button onClick={() => setFlagSubmitted(false)} className="text-amber-800 hover:underline text-[11px] font-bold">
-            Dismiss
-          </button>
+      ) : (
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-semibold">
+          {hasVideo ? (
+            <span className="flex items-center gap-1.5 text-[#17263C]">
+              <Film className="w-3.5 h-3.5 text-[#C62828]" />
+              <span>{locale === 'bn' ? 'ভিডিও পর্যবেক্ষণ' : 'Video evidence'}</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-[#17263C]">
+              <Camera className="w-3.5 h-3.5 text-[#C62828]" />
+              <span>{locale === 'bn' ? 'আলোকচিত্র প্রমাণ' : 'Photo evidence'}</span>
+            </span>
+          )}
         </div>
       )}
 
-      {/* 2. TWO-COLUMN HERO ON DESKTOP: MEDIA ON LEFT, COMMUNITY DISCUSSION ON RIGHT */}
-      <section aria-label="Media and community discussion" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* LEFT COLUMN: Media Player / Gallery, Headline & Metadata (7 cols on lg, 8 on xl) */}
-        <div className="lg:col-span-7 xl:col-span-7 space-y-4">
-          {/* Format toggle (if both video & photos available) */}
-          {hasVideo && hasPhotos && (
-            <div className="flex items-center justify-between text-xs pb-1">
-              <span className="text-slate-500 font-medium">
-                {locale === 'bn' ? 'মিডিয়া নির্বাচন:' : 'Choose media view:'}
+      {/* View Mode Controls: Standard vs Large Window + Fullscreen */}
+      <div className="flex items-center gap-2">
+        {/* Toggle between Side-by-side (Standard) and Large Window (Theater) on Desktop */}
+        <div className="hidden sm:flex items-center p-0.5 bg-white rounded-lg border border-[#E5DFD5] shadow-2xs">
+          <button
+            onClick={() => setIsLargeWindow(false)}
+            title="Side-by-side companion mode [T]"
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+              !isLargeWindow
+                ? 'bg-[#17263C] text-white shadow-xs font-semibold'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Columns2 className="w-3.5 h-3.5" />
+            <span>{locale === 'bn' ? 'দুই কলাম' : 'Side-by-side'}</span>
+          </button>
+          <button
+            onClick={() => setIsLargeWindow(true)}
+            title="Large window / Theater mode [T]"
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+              isLargeWindow
+                ? 'bg-[#17263C] text-white shadow-xs font-semibold'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <RectangleHorizontal className="w-3.5 h-3.5" />
+            <span>{locale === 'bn' ? 'বড় উইন্ডো' : 'Large window'}</span>
+          </button>
+        </div>
+
+        {/* Fullscreen Button */}
+        {activeMediaMode === 'video' && (
+          <button
+            onClick={toggleFullscreen}
+            title="Fullscreen [F]"
+            className="px-2.5 py-1 bg-white hover:bg-slate-100 rounded-lg border border-[#E5DFD5] text-xs font-medium text-[#17263C] flex items-center gap-1.5 shadow-2xs transition-colors"
+          >
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">
+              {isFullscreen
+                ? locale === 'bn'
+                  ? 'ছোট পর্দা'
+                  : 'Exit fullscreen'
+                : locale === 'bn'
+                ? 'ফুলস্ক্রিন'
+                : 'Fullscreen'}
+            </span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  // 2. MEDIA PLAYER (VIDEO / PHOTO)
+  const renderMediaPlayer = () => {
+    if (activeMediaMode === 'video' && hasVideo) {
+      return (
+        <div
+          ref={videoContainerRef}
+          className={`relative w-full rounded-2xl overflow-hidden bg-black shadow-md border border-[#D5CFC5] group transition-all duration-300 ${
+            isFullscreen
+              ? 'fixed inset-0 z-50 rounded-none w-screen h-screen flex items-center justify-center'
+              : isLargeWindow
+              ? 'aspect-video max-h-[72vh] shadow-xl border-[#17263C]/30'
+              : 'aspect-video'
+          }`}
+        >
+          {/* Quick Corner Controls (Visible on hover or touch) */}
+          <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 pointer-events-auto">
+            {/* Large Window / Theater toggle */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleLargeWindow();
+              }}
+              title={isLargeWindow ? 'Restore side-by-side [T]' : 'Large window / Theater mode [T]'}
+              className="px-2.5 py-1 rounded-lg bg-black/75 hover:bg-[#C62828] text-white text-xs backdrop-blur-md border border-white/15 transition-colors flex items-center gap-1.5 shadow-md"
+            >
+              {isLargeWindow ? <Columns2 className="w-3.5 h-3.5" /> : <RectangleHorizontal className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline text-[11px] font-medium">
+                {isLargeWindow ? (locale === 'bn' ? 'দুই কলাম' : 'Standard') : (locale === 'bn' ? 'বড় উইন্ডো' : 'Theater')}
               </span>
-              <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-[#E5DFD5]">
+              <kbd className="hidden md:inline px-1 py-0.2 bg-white/20 rounded text-[9px] font-mono leading-none">T</kbd>
+            </button>
+
+            {/* Native Fullscreen toggle */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFullscreen();
+              }}
+              title={isFullscreen ? 'Exit fullscreen [F]' : 'Fullscreen [F]'}
+              className="p-1.5 sm:px-2 sm:py-1 rounded-lg bg-black/75 hover:bg-[#C62828] text-white text-xs backdrop-blur-md border border-white/15 transition-colors flex items-center gap-1 shadow-md"
+            >
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              <kbd className="hidden md:inline px-1 py-0.2 bg-white/20 rounded text-[9px] font-mono leading-none">F</kbd>
+            </button>
+          </div>
+
+          {currentVideo?.provider === 'youtube' && youtubeId ? (
+            isVideoPlaying ? (
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&enablejsapi=1${
+                  activeTimestampSeconds !== null ? `&start=${activeTimestampSeconds}` : ''
+                }`}
+                title={report.public_summary || 'Evidentiary Video'}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                allowFullScreen
+                sandbox="allow-scripts allow-same-origin allow-presentation"
+                className="absolute inset-0 w-full h-full border-0"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsVideoPlaying(true)}
+                className="relative w-full h-full text-left cursor-pointer focus:outline-none group/play"
+                aria-label="Play video"
+              >
+                <img
+                  src={`https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
+                  }}
+                  alt={report.public_summary || 'Video frame'}
+                  className="w-full h-full object-cover group-hover/play:scale-101 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-black/35 group-hover/play:bg-black/25 transition-colors" />
+
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#C62828] text-white flex items-center justify-center shadow-xl group-hover/play:scale-105 transition-transform duration-200">
+                    <Play className="w-8 h-8 ml-1 fill-current" />
+                  </div>
+                </div>
+
+                <div className="absolute bottom-4 left-4 px-3 py-1 rounded bg-black/80 text-xs text-white backdrop-blur-sm">
+                  {locale === 'bn' ? 'ভিডিও দেখতে ক্লিক করুন' : 'Click to stream recording'}
+                </div>
+              </button>
+            )
+          ) : currentVideo?.storage_path ? (
+            <video
+              src={currentVideo.storage_path}
+              controls
+              className="w-full h-full object-contain bg-black"
+              poster="/images/hero-bangladesh.jpg"
+            />
+          ) : null}
+        </div>
+      );
+    }
+
+    if (hasPhotos) {
+      return (
+        <div className="space-y-3">
+          <div
+            className={`relative w-full bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center border border-[#D5CFC5] shadow-md group select-none transition-all duration-300 ${
+              isLargeWindow
+                ? 'min-h-[460px] sm:min-h-[560px] max-h-[700px]'
+                : 'min-h-[360px] sm:min-h-[440px] max-h-[540px]'
+            }`}
+          >
+            <div
+              className="absolute inset-0 bg-center bg-cover blur-3xl opacity-20 scale-110 pointer-events-none"
+              style={{ backgroundImage: `url(${imageSrc})` }}
+            />
+
+            <div className="relative z-10 max-w-full max-h-full flex items-center justify-center overflow-hidden p-2">
+              <img
+                src={imageSrc}
+                alt={currentImage?.caption || `Evidence photo ${currentImageIndex + 1}`}
+                className="max-h-[500px] w-auto max-w-full object-contain rounded-lg transition-transform duration-200 cursor-zoom-in"
+                style={{ transform: `scale(${zoomLevel})` }}
+                onClick={() => setIsLightboxOpen(true)}
+              />
+            </div>
+
+            <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-sm text-xs font-mono font-bold text-white border border-white/10">
+                {currentImageIndex + 1} / {imageEvidence.length}
+              </span>
+              <button
+                onClick={() => setIsLightboxOpen(true)}
+                className="p-2 rounded-full bg-black/75 hover:bg-[#C62828] text-white backdrop-blur-sm border border-white/10 transition-colors"
+                title="Fullscreen"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="absolute bottom-4 right-4 z-20 flex items-center gap-1.5 bg-black/75 backdrop-blur-sm p-1.5 rounded-xl border border-white/10">
+              <button onClick={zoomOut} className="p-1 rounded text-white hover:bg-white/20 transition-colors">
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={resetZoom} className="px-1.5 text-[11px] font-mono text-white hover:bg-white/20 rounded">
+                {Math.round(zoomLevel * 100)}%
+              </button>
+              <button onClick={zoomIn} className="p-1 rounded text-white hover:bg-white/20 transition-colors">
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {imageEvidence.length > 1 && (
+              <>
                 <button
-                  onClick={() => setActiveMediaMode('video')}
-                  className={`px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
-                    activeMediaMode === 'video'
-                      ? 'bg-[#17263C] text-white shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
+                  onClick={handlePrevPhoto}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/60 hover:bg-[#C62828] text-white flex items-center justify-center backdrop-blur-sm transition-all"
+                  aria-label="Previous image"
                 >
-                  <Film className="w-3 h-3 text-red-400" />
-                  <span>{locale === 'bn' ? 'ভিডিও' : 'Watch video'}</span>
+                  <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => setActiveMediaMode('image')}
-                  className={`px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
-                    activeMediaMode === 'image'
-                      ? 'bg-[#17263C] text-white shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
+                  onClick={handleNextPhoto}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/60 hover:bg-[#C62828] text-white flex items-center justify-center backdrop-blur-sm transition-all"
+                  aria-label="Next image"
                 >
-                  <Camera className="w-3 h-3 text-blue-400" />
-                  <span>{locale === 'bn' ? 'ছবিগুলো' : 'Browse photos'}</span>
+                  <ChevronRight className="w-5 h-5" />
                 </button>
-              </div>
+              </>
+            )}
+          </div>
+
+          {/* Thumbnail strip */}
+          {imageEvidence.length > 1 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              {imageEvidence.map((img, idx) => {
+                const thumbSrc = img.storage_path || img.external_url || '/images/evidence-campus-corridor.jpg';
+                const isSelected = currentImageIndex === idx;
+                return (
+                  <button
+                    key={img.id}
+                    onClick={() => {
+                      setZoomLevel(1);
+                      setCurrentImageIndex(idx);
+                    }}
+                    className={`relative w-20 h-14 rounded-lg overflow-hidden shrink-0 border-2 transition-all ${
+                      isSelected
+                        ? 'border-[#C62828] ring-2 ring-red-500/20 scale-102'
+                        : 'border-slate-300 opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={thumbSrc} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                );
+              })}
             </div>
           )}
-
-          {/* Media Player Frame */}
-          {activeMediaMode === 'video' && hasVideo ? (
-            <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-md border border-[#D5CFC5]">
-              {currentVideo?.provider === 'youtube' && youtubeId ? (
-                isVideoPlaying ? (
-                  <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&enablejsapi=1${
-                      activeTimestampSeconds !== null ? `&start=${activeTimestampSeconds}` : ''
-                    }`}
-                    title={report.public_summary || 'Evidentiary Video'}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    sandbox="allow-scripts allow-same-origin allow-presentation"
-                    className="absolute inset-0 w-full h-full border-0"
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsVideoPlaying(true)}
-                    className="relative w-full h-full text-left cursor-pointer focus:outline-none group"
-                    aria-label="Play video"
-                  >
-                    <img
-                      src={`https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
-                      }}
-                      alt={report.public_summary || 'Video frame'}
-                      className="w-full h-full object-cover group-hover:scale-101 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-black/35 group-hover:bg-black/25 transition-colors" />
-
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#C62828] text-white flex items-center justify-center shadow-xl group-hover:scale-105 transition-transform duration-200">
-                        <Play className="w-8 h-8 ml-1 fill-current" />
-                      </div>
-                    </div>
-
-                    <div className="absolute bottom-4 left-4 px-3 py-1 rounded bg-black/80 text-xs text-white backdrop-blur-sm">
-                      {locale === 'bn' ? 'ভিডিও দেখতে ক্লিক করুন' : 'Click to stream recording'}
-                    </div>
-                  </button>
-                )
-              ) : currentVideo?.storage_path ? (
-                <video
-                  src={currentVideo.storage_path}
-                  controls
-                  className="w-full h-full object-contain bg-black"
-                  poster="/images/hero-bangladesh.jpg"
-                />
-              ) : null}
-            </div>
-          ) : hasPhotos ? (
-            /* Photo Gallery */
-            <div className="space-y-3">
-              <div className="relative w-full min-h-[360px] sm:min-h-[440px] max-h-[540px] bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center border border-[#D5CFC5] shadow-md group select-none">
-                <div
-                  className="absolute inset-0 bg-center bg-cover blur-3xl opacity-20 scale-110 pointer-events-none"
-                  style={{ backgroundImage: `url(${imageSrc})` }}
-                />
-
-                <div className="relative z-10 max-w-full max-h-full flex items-center justify-center overflow-hidden p-2">
-                  <img
-                    src={imageSrc}
-                    alt={currentImage?.caption || `Evidence photo ${currentImageIndex + 1}`}
-                    className="max-h-[500px] w-auto max-w-full object-contain rounded-lg transition-transform duration-200 cursor-zoom-in"
-                    style={{ transform: `scale(${zoomLevel})` }}
-                    onClick={() => setIsLightboxOpen(true)}
-                  />
-                </div>
-
-                <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-sm text-xs font-mono font-bold text-white border border-white/10">
-                    {currentImageIndex + 1} / {imageEvidence.length}
-                  </span>
-                  <button
-                    onClick={() => setIsLightboxOpen(true)}
-                    className="p-2 rounded-full bg-black/75 hover:bg-[#C62828] text-white backdrop-blur-sm border border-white/10 transition-colors"
-                    title="Fullscreen"
-                  >
-                    <Maximize2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="absolute bottom-4 right-4 z-20 flex items-center gap-1.5 bg-black/75 backdrop-blur-sm p-1.5 rounded-xl border border-white/10">
-                  <button onClick={zoomOut} className="p-1 rounded text-white hover:bg-white/20 transition-colors">
-                    <ZoomOut className="w-3.5 h-3.5" />
-                  </button>
-                  <button onClick={resetZoom} className="px-1.5 text-[11px] font-mono text-white hover:bg-white/20 rounded">
-                    {Math.round(zoomLevel * 100)}%
-                  </button>
-                  <button onClick={zoomIn} className="p-1 rounded text-white hover:bg-white/20 transition-colors">
-                    <ZoomIn className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {imageEvidence.length > 1 && (
-                  <>
-                    <button
-                      onClick={handlePrevPhoto}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/60 hover:bg-[#C62828] text-white flex items-center justify-center backdrop-blur-sm transition-all"
-                      aria-label="Previous image"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={handleNextPhoto}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/60 hover:bg-[#C62828] text-white flex items-center justify-center backdrop-blur-sm transition-all"
-                      aria-label="Next image"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Thumbnail strip */}
-              {imageEvidence.length > 1 && (
-                <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                  {imageEvidence.map((img, idx) => {
-                    const thumbSrc = img.storage_path || img.external_url || '/images/evidence-campus-corridor.jpg';
-                    const isSelected = currentImageIndex === idx;
-                    return (
-                      <button
-                        key={img.id}
-                        onClick={() => {
-                          setZoomLevel(1);
-                          setCurrentImageIndex(idx);
-                        }}
-                        className={`relative w-20 h-14 rounded-lg overflow-hidden shrink-0 border-2 transition-all ${
-                          isSelected
-                            ? 'border-[#C62828] ring-2 ring-red-500/20 scale-102'
-                            : 'border-slate-300 opacity-60 hover:opacity-100'
-                        }`}
-                      >
-                        <img src={thumbSrc} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          ) : null}
-
-          {/* Headline & Metadata */}
-          <div className="space-y-3 pt-2">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#17263C] leading-tight tracking-tight">
-              {report.public_summary ||
-                `Public Report: Allegation regarding ${
-                  report.custom_organization_name || report.institution_type || 'public body'
-                }`}
-            </h1>
-
-            {/* Byline */}
-            <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-slate-600">
-              <span className="font-semibold text-[#17263C] flex items-center gap-1">
-                <Eye className="w-4 h-4 text-slate-400" />
-                <span>{formattedViews} views</span>
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1 text-[#263238] font-medium">
-                <MapPin className="w-3.5 h-3.5 text-[#C62828]" />
-                <span>{report.division}{report.district ? `, ${report.district}` : ''}</span>
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span>{formatDate(report.incident_date, locale)}</span>
-              </span>
-              <span>•</span>
-              <Badge status={report.status} />
-            </div>
-          </div>
         </div>
+      );
+    }
 
-        {/* RIGHT COLUMN: Dedicated Community Discussion Companion Panel (5 cols on lg, 5 on xl) */}
-        <div className="lg:col-span-5 xl:col-span-5">
-          <CommentsSection
-            reportId={report.id}
-            reportNumber={report.report_number}
-            initialComments={comments}
-            commentsDisabled={report.comments_disabled}
-            locale={locale}
-          />
-        </div>
-      </section>
+    return null;
+  };
 
-      {/* 3. STORY NARRATIVE & CONTEXT (Full Reading Width Below Media Hero) */}
+  // 3. HEADLINE & METADATA
+  const renderHeadlineAndMetadata = () => (
+    <div className="space-y-3 pt-2">
+      <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#17263C] leading-tight tracking-tight">
+        {report.public_summary ||
+          `Public Report: Allegation regarding ${
+            report.custom_organization_name || report.institution_type || 'public body'
+          }`}
+      </h1>
+
+      {/* Byline */}
+      <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-slate-600">
+        <span className="font-semibold text-[#17263C] flex items-center gap-1">
+          <Eye className="w-4 h-4 text-slate-400" />
+          <span>{formattedViews} views</span>
+        </span>
+        <span>•</span>
+        <span className="flex items-center gap-1 text-[#263238] font-medium">
+          <MapPin className="w-3.5 h-3.5 text-[#C62828]" />
+          <span>{report.division}{report.district ? `, ${report.district}` : ''}</span>
+        </span>
+        <span>•</span>
+        <span className="flex items-center gap-1">
+          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+          <span>{formatDate(report.incident_date, locale)}</span>
+        </span>
+        <span>•</span>
+        <Badge status={report.status} />
+      </div>
+    </div>
+  );
+
+  // 4. STORY SECTIONS: NARRATIVE, WHAT CHANGED, NEARBY
+  const renderStorySections = () => (
+    <div className="space-y-8">
+      {/* Narrative & Context */}
       <section aria-label="Report context" className="bg-white rounded-2xl border border-[#E5DFD5] p-6 sm:p-8 space-y-6 shadow-xs">
         {/* "What happened?" */}
         <div className="space-y-3">
@@ -490,7 +619,7 @@ export function ReportStoryLayout({
           </p>
         </div>
 
-        {/* Optional Timestamps (Only shown if useful timestamps exist in long video, NOT mandatory) */}
+        {/* Optional Timestamps */}
         {hasVideo && report.key_timestamps && report.key_timestamps.length > 0 && (
           <div className="pt-2 border-t border-[#EAE5DC]">
             <button
@@ -538,14 +667,14 @@ export function ReportStoryLayout({
         )}
       </section>
 
-      {/* 4. WHAT CHANGED? (Meaningful, Documented Developments Only) */}
+      {/* What Changed? */}
       {(officialResp || timeline.length > 0) && (
         <section aria-label="What changed" className="bg-white rounded-2xl border border-[#E5DFD5] p-6 sm:p-8 space-y-4 shadow-xs">
           <h2 className="text-xl sm:text-2xl font-bold text-[#17263C]">
             {locale === 'bn' ? 'কী পরিবর্তন হলো?' : 'What changed?'}
           </h2>
 
-          {/* Official entity response statement in plain quote */}
+          {/* Official response quote */}
           {officialResp && (
             <div className="p-4 sm:p-5 rounded-xl bg-[#FBF9F5] border border-[#EAE4D9] space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -565,7 +694,7 @@ export function ReportStoryLayout({
             </div>
           )}
 
-          {/* Meaningful developments timeline */}
+          {/* Developments timeline */}
           {timeline.length > 0 && (
             <div className="space-y-2 pt-1">
               <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -586,7 +715,7 @@ export function ReportStoryLayout({
         </section>
       )}
 
-      {/* 5. NEARBY REPORTS & USEFUL RESOURCES */}
+      {/* Nearby Reports & Helplines */}
       <section aria-label="Nearby reports and resources" className="bg-white rounded-2xl border border-[#E5DFD5] p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -654,6 +783,138 @@ export function ReportStoryLayout({
           </Link>
         </div>
       </section>
+    </div>
+  );
+
+  return (
+    <article className="space-y-8 text-[#263238]">
+      {/* 1. TOP BREADCRUMB & UTILITY BAR */}
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs pb-3 border-b border-[#E5DFD5]">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/reports"
+            className="inline-flex items-center gap-1.5 font-bold text-[#17263C] hover:text-[#C62828] transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>{locale === 'bn' ? 'সকল প্রতিবেদনে ফিরে যান' : 'Back to reports'}</span>
+          </Link>
+          <span className="text-slate-300">/</span>
+          <span className="px-2.5 py-0.5 rounded-full bg-white border border-[#E5DFD5] text-[#17263C] font-semibold">
+            {report.category?.name_en || report.institution_type || 'Public Interest'}
+          </span>
+        </div>
+
+        {/* Utility buttons */}
+        <div className="flex items-center gap-2 text-slate-600">
+          <button
+            onClick={() => setIsShareOpen(true)}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded hover:bg-white hover:shadow-xs transition-all text-[#17263C]"
+            title="Share"
+          >
+            <Share2 className="w-3.5 h-3.5 text-slate-500" />
+            <span>{locale === 'bn' ? 'শেয়ার' : 'Share'}</span>
+          </button>
+
+          <button
+            onClick={toggleSave}
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded hover:bg-white hover:shadow-xs transition-all ${
+              isSaved ? 'text-emerald-800 font-bold' : 'text-[#17263C]'
+            }`}
+            title="Save"
+          >
+            {isSaved ? <BookmarkCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Bookmark className="w-3.5 h-3.5 text-slate-500" />}
+            <span>{isSaved ? (locale === 'bn' ? 'সংরক্ষিত' : 'Saved') : (locale === 'bn' ? 'সংরক্ষণ' : 'Save')}</span>
+          </button>
+
+          <button
+            onClick={handlePrint}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded hover:bg-white hover:shadow-xs transition-all text-[#17263C] hidden sm:inline-flex"
+            title="Print"
+          >
+            <Printer className="w-3.5 h-3.5 text-slate-500" />
+            <span>{locale === 'bn' ? 'প্রিন্ট' : 'Print'}</span>
+          </button>
+
+          <button
+            onClick={() => setFlagSubmitted(true)}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-white text-slate-400 hover:text-[#C62828] transition-colors"
+            title="Flag inaccurate info"
+          >
+            <Flag className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {flagSubmitted && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between">
+          <span>
+            {locale === 'bn'
+              ? 'আপনার পর্যালোচনার অনুরোধ গৃহীত হয়েছে। আমাদের টিম বিষয়টি খতিয়ে দেখবে।'
+              : 'Your inquiry has been received. Our review desk will re-verify the material.'}
+          </span>
+          <button onClick={() => setFlagSubmitted(false)} className="text-amber-800 hover:underline text-[11px] font-bold">
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* 2. DYNAMIC LAYOUT BASED ON isLargeWindow */}
+      {!isLargeWindow ? (
+        /* STANDARD VIEW: TWO-COLUMN ON DESKTOP (Video 7 cols, Comments 5 cols) */
+        <>
+          <section aria-label="Media and community discussion" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* LEFT COLUMN: Media Player + Headline & Metadata (7 cols) */}
+            <div className="lg:col-span-7 xl:col-span-7 space-y-4">
+              {renderMediaToolbar()}
+              {renderMediaPlayer()}
+              {renderHeadlineAndMetadata()}
+            </div>
+
+            {/* RIGHT COLUMN: Dedicated Community Discussion Companion Panel (5 cols) */}
+            <div className="lg:col-span-5 xl:col-span-5">
+              <CommentsSection
+                reportId={report.id}
+                reportNumber={report.report_number}
+                initialComments={comments}
+                commentsDisabled={report.comments_disabled}
+                locale={locale}
+              />
+            </div>
+          </section>
+
+          {/* BELOW: Full Reading Width Narrative & Context */}
+          {renderStorySections()}
+        </>
+      ) : (
+        /* LARGE WINDOW VIEW: EXPANDED CINEMA HERO (12 COLS), STORY & COMMENTS BELOW */
+        <div className="space-y-8 animate-in fade-in duration-200">
+          {/* FULL-WIDTH CINEMATIC MEDIA HERO */}
+          <section aria-label="Large theater media view" className="space-y-4">
+            {renderMediaToolbar()}
+            {renderMediaPlayer()}
+            {renderHeadlineAndMetadata()}
+          </section>
+
+          {/* TWO-COLUMN LAYOUT BELOW LARGE VIDEO: STORY ON LEFT, COMMENTS ON RIGHT */}
+          <section aria-label="Report story and discussion" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* LEFT COLUMN: Narrative & Context (7 cols) */}
+            <div className="lg:col-span-7 xl:col-span-7">
+              {renderStorySections()}
+            </div>
+
+            {/* RIGHT COLUMN: Sticky Comments Companion Panel (5 cols) */}
+            <div className="lg:col-span-5 xl:col-span-5 lg:sticky lg:top-6">
+              <CommentsSection
+                reportId={report.id}
+                reportNumber={report.report_number}
+                initialComments={comments}
+                commentsDisabled={report.comments_disabled}
+                locale={locale}
+              />
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* Lightbox Modal for Photos */}
       <LightboxModal
