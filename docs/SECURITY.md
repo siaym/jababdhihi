@@ -96,11 +96,18 @@ flowchart TD
 
 ---
 
-## 5. Secret Tracking Key Security
+## 5. Secret Tracking Key Security & Threat Model
 
-1. **Entropy:** Tracking keys are generated using cryptographically secure pseudo-random number generators (`crypto.randomBytes(12)` formatted as `xxxx-xxxx-xxxx-xxxx`).
-2. **Storage:** The database stores only the salted cryptographic hash (`Argon2id` or `Bcrypt`) of the tracking key. Even with full database access, attackers cannot reverse the keys to query report tracking panels.
-3. **Lookup Rate Limiting:** Tracking queries are limited to **5 attempts per 15 minutes** per IP address. Exceeding this triggers a temporary block to prevent brute-force attacks on report identifiers.
+1. **High Entropy:** Tracking passkeys are machine-generated using cryptographically secure pseudo-random number generators (`crypto.randomBytes(12)` mapped to 16 alphanumeric characters in four 4-character hyphenated blocks, excluding ambiguous characters `0, 1, l, o`). This guarantees ~80 bits of true cryptographic entropy ($32^{16} \approx 1.2 \times 10^{24}$ possibilities).
+2. **Threat Model & Cryptographic Verification:**
+   - Because the tracking passkey is a high-entropy CSPRNG machine token rather than a low-entropy human password, it is not susceptible to dictionary attacks.
+   - The platform stores the SHA-256 cryptographic digest (`tracking_secret_hash`) in the database.
+   - Verification uses timing-safe constant-time buffer comparison (`crypto.timingSafeEqual`) to prevent side-channel timing leaks.
+   - SHA-256 prevents serverless CPU exhaustion during traffic spikes while providing 256-bit collision and pre-image resistance.
+3. **Lookup Rate Limiting & Zero Leakage:**
+   - Tracking queries are strictly rate-limited using distributed counters (`report-track` tier: max 15 requests per 15 minutes per IP address).
+   - In production, missing database connectivity fails closed (no fallback to mock storage).
+   - The API tracking endpoint projects strict allow-lists and never returns `tracking_secret_hash`, reviewer assignments, contact details, or internal review rationale.
 
 ---
 

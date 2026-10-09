@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSignedEvidenceViewUrl } from '@/lib/supabase/storage';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { authorizeCaseOperation } from '@/lib/security/auth-check';
-import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
+import { authorizeCaseOperation, isProductionEnvironment } from '@/lib/security/auth-check';
+import { checkRateLimitAsync, getClientIp } from '@/lib/security/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIp(req);
 
-    // Rate limiting: prevent brute-forcing evidence URLs
-    const rateCheck = checkRateLimit('public-api', clientIp);
+    // 1. Distributed Rate limiting: prevent brute-forcing evidence URLs
+    const rateCheck = await checkRateLimitAsync('public-api', clientIp);
     if (!rateCheck.isAllowed) {
       return NextResponse.json(
         {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
             message: `Too many requests. Please wait ${rateCheck.resetSeconds} seconds.`,
           },
         },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': String(rateCheck.resetSeconds) } }
       );
     }
 
@@ -42,6 +42,19 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient();
     if (!admin) {
+      // Fail closed in production if Supabase configuration is missing
+      if (isProductionEnvironment()) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'SERVICE_UNAVAILABLE',
+              message: 'Database storage service unavailable in production.',
+            },
+          },
+          { status: 503 }
+        );
+      }
       // Local dev mode fallback
       return NextResponse.json({
         success: true,
@@ -52,7 +65,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 1. Look up evidence record in database
+    // 2. Look up evidence record in database
     const { data: evidence, error: evError } = await admin
       .from('evidence')
       .select('id, report_id, storage_path, visibility, review_state, evidence_type')
@@ -85,28 +98,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Authorization check
-    // If evidence is public, public visitors can view it
-    if (evidence.visibility === 'public') {
-      const signedUrl = await getSignedEvidenceViewUrl(
-        evidence.storage_path,
-        expiresInSeconds || 900
-      );
+    // 3. P0-5: Public evidence review state check
+    // Evidence is only publicly accessible if visibility is 'public' AND review_state is 'approved'
+    if (evidence.visibility === 'public' && evidence.review_state === 'approved') {
+      const ttl = Math.min(Math.max(60, expiresInSeconds || 900), 3600);
+      const signedUrl = await getSignedEvidenceViewUrl(evidence.storage_path, ttl);
+
+      if (!signedUrl) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'STORAGE_ERROR',
+              message: 'Failed to generate signed download URL.',
+            },
+          },
+          { status: 500 }
+        );
+      }
 
       return NextResponse.json({
         success: true,
         data: {
           signedUrl,
-          expiresInSeconds: expiresInSeconds || 900,
+          expiresInSeconds: ttl,
           visibility: 'public',
         },
       });
     }
 
-    // Evidence is private or reviewer-only: require verification
+    // 4. P0-1: Bound authorization check for private or unapproved evidence
+    // Cryptographically binds the authenticated credential to evidence.report_id
     const authResult = await authorizeCaseOperation(req, {
       reportIdentifier: report_number || evidence.report_id,
       trackingSecret: tracking_secret,
+      targetReportId: evidence.report_id, // STRICT CASE BINDING
     });
 
     if (!authResult.authorized) {
@@ -115,7 +141,21 @@ export async function POST(req: NextRequest) {
           success: false,
           error: {
             code: 'FORBIDDEN',
-            message: 'You do not have authorization to view this private evidence item.',
+            message: authResult.error || 'You do not have authorization to view this evidence item.',
+          },
+        },
+        { status: authResult.statusCode || 403 }
+      );
+    }
+
+    // Explicit double-check: enforce caller's case ID matches evidence's case ID
+    if (authResult.callerType === 'reporter' && authResult.report?.id !== evidence.report_id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Cryptographic credentials belong to a different case. Cross-case access is strictly prohibited.',
           },
         },
         { status: 403 }
@@ -148,6 +188,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.error('Signed view API error:', error);
     return NextResponse.json(
       {
         success: false,

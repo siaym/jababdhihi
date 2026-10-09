@@ -1,6 +1,6 @@
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import crypto from 'crypto';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient } from '../supabase/admin.ts';
 
 export type StaffRole = 'reviewer' | 'senior_reviewer' | 'admin';
 
@@ -25,6 +25,13 @@ export interface AuthCheckResult {
 }
 
 /**
+ * Check if running under production environment
+ */
+export function isProductionEnvironment(): boolean {
+  return process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_APP_ENV === 'production';
+}
+
+/**
  * Verify reporter ownership using report reference identifier and secret tracking passkey.
  * Uses timing-safe hash comparison to prevent side-channel timing attacks.
  */
@@ -42,6 +49,9 @@ export async function verifyReporterCredentials(
 
   const admin = createAdminClient();
   if (!admin) {
+    if (isProductionEnvironment()) {
+      return { authorized: false, error: 'Database service unavailable. Mock mode is prohibited in production.' };
+    }
     // Local / development mode fallback
     return { authorized: true, report: { id: 'temp-case-id', report_number: cleanId, status: 'submitted' } };
   }
@@ -88,6 +98,9 @@ export async function verifyStaffSession(
 ): Promise<{ authorized: boolean; user?: any; error?: string }> {
   const admin = createAdminClient();
   if (!admin) {
+    if (isProductionEnvironment()) {
+      return { authorized: false, error: 'Database service unavailable. Mock staff sessions are prohibited in production.' };
+    }
     // Local mock environment without Supabase
     return { authorized: true, user: { id: 'mock-staff-id', email: 'reviewer@jababdihi.org', role: 'admin', isMfaVerified: true } };
   }
@@ -158,23 +171,103 @@ export async function verifyStaffSession(
 }
 
 /**
+ * Enforces case-level assignment authorization for staff members.
+ * - Admin: Unrestricted supervisory access.
+ * - Senior Reviewer: Authorized for cases assigned to them or unassigned triage cases.
+ * - Reviewer: Strictly restricted to cases where assigned_reviewer_id matches their user ID.
+ */
+export async function verifyStaffCaseAccess(
+  staffUser: { id: string; role: StaffRole },
+  targetReportId: string
+): Promise<{ authorized: boolean; error?: string }> {
+  if (!targetReportId?.trim()) {
+    return { authorized: false, error: 'Target report identifier is required for case access verification.' };
+  }
+
+  // Administrators have global triage and audit authorization
+  if (staffUser.role === 'admin') {
+    return { authorized: true };
+  }
+
+  const admin = createAdminClient();
+  if (!admin) {
+    if (isProductionEnvironment()) {
+      return { authorized: false, error: 'Database service unavailable in production.' };
+    }
+    return { authorized: true };
+  }
+
+  const cleanId = targetReportId.trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+  const query = admin
+    .from('reports')
+    .select('id, assigned_reviewer_id, assigned_senior_id')
+    .limit(1);
+
+  const { data: report, error } = isUuid
+    ? await query.eq('id', cleanId).single()
+    : await query.eq('report_number', cleanId).single();
+
+  if (error || !report) {
+    return { authorized: false, error: 'Case not found for case assignment authorization.' };
+  }
+
+  if (staffUser.role === 'senior_reviewer') {
+    // Senior reviewers oversee assigned cases or cases awaiting senior assignment
+    if (report.assigned_senior_id === staffUser.id || !report.assigned_senior_id) {
+      return { authorized: true };
+    }
+    return { authorized: false, error: 'Case is assigned to another senior reviewer.' };
+  }
+
+  if (staffUser.role === 'reviewer') {
+    // Regular reviewers strictly authorized only for cases assigned to them
+    if (report.assigned_reviewer_id === staffUser.id) {
+      return { authorized: true };
+    }
+    return {
+      authorized: false,
+      error: 'Unauthorized. This case is not assigned to your reviewer account.',
+    };
+  }
+
+  return { authorized: false, error: 'Unauthorized role.' };
+}
+
+/**
  * Universal case authorization check:
  * Authorizes access if the caller provides either:
- * A) Valid staff session with reviewer permissions, OR
- * B) Valid reporter credentials (report identifier + tracking secret).
+ * A) Valid staff session with case assignment verification, OR
+ * B) Valid reporter credentials cryptographically bound to the target case.
  */
 export async function authorizeCaseOperation(
   req: NextRequest,
   params: {
     reportIdentifier?: string;
     trackingSecret?: string;
+    targetReportId?: string;
   }
 ): Promise<AuthCheckResult> {
+  const caseToCheck = params.targetReportId || params.reportIdentifier;
+
   // 1. Check for staff Bearer token first
   const authHeader = req.headers.get('authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const staffCheck = await verifyStaffSession(req, 'reviewer');
     if (staffCheck.authorized && staffCheck.user) {
+      if (caseToCheck) {
+        const assignmentCheck = await verifyStaffCaseAccess(staffCheck.user, caseToCheck);
+        if (!assignmentCheck.authorized) {
+          return {
+            authorized: false,
+            callerType: staffCheck.user.role as StaffRole,
+            user: staffCheck.user,
+            error: assignmentCheck.error || 'Reviewer access is restricted to assigned cases.',
+            statusCode: 403,
+          };
+        }
+      }
+
       return {
         authorized: true,
         callerType: staffCheck.user.role as StaffRole,
@@ -191,6 +284,16 @@ export async function authorizeCaseOperation(
     );
 
     if (reporterCheck.authorized && reporterCheck.report) {
+      // Cryptographic binding: Enforce that credentials match the exact target case
+      if (params.targetReportId && reporterCheck.report.id !== params.targetReportId) {
+        return {
+          authorized: false,
+          callerType: 'reporter',
+          error: 'Credentials provided do not belong to the requested case. Cross-case access is strictly prohibited.',
+          statusCode: 403,
+        };
+      }
+
       return {
         authorized: true,
         callerType: 'reporter',

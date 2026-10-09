@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { trackReport as trackInMemory } from '@/services/reports';
-import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
+import { checkRateLimitAsync, getClientIp } from '@/lib/security/rate-limit';
+import { isProductionEnvironment } from '@/lib/security/auth-check';
 
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIp(req);
 
-    // Rate Limiting: protect against brute-force passkey guessing
-    const rateCheck = checkRateLimit('report-track', clientIp);
+    // 1. Distributed Rate Limiting: protect against brute-force passkey guessing
+    const rateCheck = await checkRateLimitAsync('report-track', clientIp);
     if (!rateCheck.isAllowed) {
       return NextResponse.json(
         {
@@ -48,6 +49,19 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient();
 
     if (!admin) {
+      if (isProductionEnvironment()) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'SERVICE_UNAVAILABLE',
+              message: 'Database tracking service unavailable in production.',
+            },
+          },
+          { status: 503 }
+        );
+      }
+
       // In-memory fallback
       const result = await trackInMemory(report_number, tracking_secret);
       if (!result) {
@@ -69,22 +83,52 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Supabase lookup
+    // 2. Cryptographic Secret Lookup
     const trimmedNum = report_number.trim();
     const trimmedSec = tracking_secret.trim();
-    const hashedSec = crypto.createHash('sha256').update(trimmedSec).digest('hex');
+    const candidateHash = crypto.createHash('sha256').update(trimmedSec).digest('hex');
+
+    // Strict projection: never select internal notes, reviewer assignments, or reporter contacts
+    const REPORT_TRACKING_COLUMNS = [
+      'id',
+      'report_number',
+      'category_id',
+      'privacy_mode',
+      'incident_date',
+      'approximate_time',
+      'division',
+      'district',
+      'upazila_thana',
+      'area_landmark',
+      'location_privacy',
+      'institution_type',
+      'custom_organization_name',
+      'involved_role_or_title',
+      'description',
+      'public_summary',
+      'status',
+      'priority',
+      'is_public',
+      'verified_status',
+      'created_at',
+      'updated_at',
+      'tracking_secret_hash',
+      'category:report_categories(id, code, name_en, name_bn, icon)',
+    ].join(', ');
 
     const { data: report, error: reportErr } = await admin
       .from('reports')
-      .select('*, category:report_categories(*)')
+      .select(REPORT_TRACKING_COLUMNS)
       .eq('report_number', trimmedNum)
       .single();
 
     if (reportErr || !report) {
-      // Check in-memory fallback just in case seeded data exists in memory
-      const fallback = await trackInMemory(trimmedNum, trimmedSec);
-      if (fallback) {
-        return NextResponse.json({ success: true, data: fallback });
+      // In non-production, check in-memory fallback
+      if (!isProductionEnvironment()) {
+        const fallback = await trackInMemory(trimmedNum, trimmedSec);
+        if (fallback) {
+          return NextResponse.json({ success: true, data: fallback });
+        }
       }
 
       return NextResponse.json(
@@ -99,8 +143,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify secret hash
-    if (report.tracking_secret_hash !== hashedSec) {
+    // 3. Constant-time comparison between candidate hash and stored hash
+    const storedHashBuf = Buffer.from((report as any).tracking_secret_hash || '', 'hex');
+    const candidateHashBuf = Buffer.from(candidateHash, 'hex');
+
+    if (
+      storedHashBuf.length !== candidateHashBuf.length ||
+      !crypto.timingSafeEqual(storedHashBuf, candidateHashBuf)
+    ) {
       return NextResponse.json(
         {
           success: false,
@@ -113,29 +163,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch timeline
+    // 4. Fetch timeline strictly allow-listing public note (NO internal_rationale or actor_id)
     const { data: timeline } = await admin
       .from('report_status_history')
-      .select('*')
-      .eq('report_id', report.id)
+      .select('id, report_id, previous_status, new_status, public_note, created_at')
+      .eq('report_id', (report as any).id)
       .order('created_at', { ascending: true });
 
-    // Fetch evidence
+    // 5. Fetch evidence strictly allow-listing metadata (NO internal storage_path or reviewer notes)
     const { data: evidence } = await admin
       .from('evidence')
-      .select('*')
-      .eq('report_id', report.id)
+      .select(
+        'id, report_id, evidence_type, provider, external_url, is_embeddable, original_filename, mime_type, file_size_bytes, visibility, review_state, caption, created_at'
+      )
+      .eq('report_id', (report as any).id)
       .order('created_at', { ascending: true });
 
-    // Fetch messages
+    // 6. Fetch messages strictly allow-listing reporter-safe communication (NO staff user IDs)
     const { data: messages } = await admin
       .from('messages')
-      .select('*')
-      .eq('report_id', report.id)
+      .select('id, report_id, sender_type, message_text, created_at')
+      .eq('report_id', (report as any).id)
       .order('created_at', { ascending: true });
 
-    // Strip sensitive tracking hash from response
-    const { tracking_secret_hash, ...sanitizedReport } = report;
+    // 7. Strip sensitive tracking hash from response
+    const { tracking_secret_hash, ...sanitizedReport } = report as any;
 
     return NextResponse.json({
       success: true,

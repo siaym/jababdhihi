@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createEvidenceUploadTicket } from '@/lib/supabase/storage';
-import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
-import { canAcceptFileUploads } from '@/lib/security/safe-mode';
+import { checkRateLimitAsync, getClientIp } from '@/lib/security/rate-limit';
+import { canAcceptFileUploadsAsync } from '@/lib/security/safe-mode';
 import { validateEvidenceFileMetadata } from '@/lib/security/file-validation';
-import { authorizeCaseOperation } from '@/lib/security/auth-check';
+import { authorizeCaseOperation, isProductionEnvironment } from '@/lib/security/auth-check';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIp(req);
 
-    // 1. Rate Limiting Check
-    const rateCheck = checkRateLimit('evidence-upload', clientIp);
+    // 1. Distributed Rate Limiting Check
+    const rateCheck = await checkRateLimitAsync('evidence-upload', clientIp);
     if (!rateCheck.isAllowed) {
       return NextResponse.json(
         {
@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Safe Mode Check
-    const safeModeCheck = canAcceptFileUploads();
+    // 2. Authoritative Safe Mode Check
+    const safeModeCheck = await canAcceptFileUploadsAsync();
     if (!safeModeCheck.allowed) {
       return NextResponse.json(
         {
@@ -64,10 +64,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Zero-Trust Authorization Verification
+    const admin = createAdminClient();
+    if (!admin && isProductionEnvironment()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'SERVICE_UNAVAILABLE',
+            message: 'Database storage service unavailable in production.',
+          },
+        },
+        { status: 503 }
+      );
+    }
+
+    // 3. Zero-Trust Authorization & Case Assignment Verification
     const authResult = await authorizeCaseOperation(req, {
       reportIdentifier: targetReportRef,
       trackingSecret: tracking_secret,
+      targetReportId: targetReportRef,
     });
 
     if (!authResult.authorized) {
@@ -78,7 +93,7 @@ export async function POST(req: NextRequest) {
             code: 'UNAUTHORIZED',
             message:
               authResult.error ||
-              'Access denied. Valid tracking secret or reviewer credentials required.',
+              'Access denied. Valid tracking secret or assigned reviewer credentials required.',
           },
         },
         { status: authResult.statusCode || 401 }
@@ -103,7 +118,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const admin = createAdminClient();
     if (admin) {
       const { count, error: countErr } = await admin
         .from('evidence')
@@ -169,6 +183,7 @@ export async function POST(req: NextRequest) {
       data: ticket,
     });
   } catch (error: any) {
+    console.error('Evidence upload ticket error:', error);
     return NextResponse.json(
       {
         success: false,

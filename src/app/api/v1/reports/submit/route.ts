@@ -5,17 +5,19 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { submitReport as submitInMemory } from '@/services/reports';
 import { generateReportNumber, generateTrackingSecret } from '@/lib/utils';
 import { analyzeExternalUrl } from '@/services/evidence';
-import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
-import { canAcceptSubmissions } from '@/lib/security/safe-mode';
-import { validateSafeUrl } from '@/lib/security/ssrf';
+import { checkRateLimitAsync, getClientIp } from '@/lib/security/rate-limit';
+import { canAcceptSubmissionsAsync } from '@/lib/security/safe-mode';
+import { validateSafeUrlAsync } from '@/lib/security/ssrf';
+import { encryptField } from '@/lib/security/encryption';
+import { isProductionEnvironment } from '@/lib/security/auth-check';
 import { INITIAL_CATEGORIES } from '@/config/constants';
 
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIp(req);
 
-    // 1. Application-level Rate Limiting Check
-    const rateCheck = checkRateLimit('report-submit', clientIp);
+    // 1. Distributed Rate Limiting Check
+    const rateCheck = await checkRateLimitAsync('report-submit', clientIp);
     if (!rateCheck.isAllowed) {
       return NextResponse.json(
         {
@@ -58,8 +60,8 @@ export async function POST(req: NextRequest) {
 
     const input = parseResult.data;
 
-    // 3. Emergency Defensive Safe Mode Check
-    const safeModeCheck = canAcceptSubmissions(input.privacy_mode);
+    // 3. Emergency Defensive Safe Mode Check (authoritative async)
+    const safeModeCheck = await canAcceptSubmissionsAsync(input.privacy_mode);
     if (!safeModeCheck.allowed) {
       return NextResponse.json(
         {
@@ -73,11 +75,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. SSRF & Protocol Safety Check on External Links
+    // 4. DNS-Aware SSRF & Protocol Safety Check on External Links (async DNS resolution)
     if (input.evidence_items) {
       for (const ev of input.evidence_items) {
         if (ev.type === 'external_link') {
-          const urlSafety = validateSafeUrl(ev.url);
+          const urlSafety = await validateSafeUrlAsync(ev.url);
           if (!urlSafety.isValid) {
             return NextResponse.json(
               {
@@ -97,7 +99,19 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient();
 
     if (!admin) {
-      // Offline / Local fallback
+      if (isProductionEnvironment()) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'SERVICE_UNAVAILABLE',
+              message: 'Database submission service unavailable in production. Mock mode is disabled in production.',
+            },
+          },
+          { status: 503 }
+        );
+      }
+      // Offline / Local development fallback
       const inMemoryResult = await submitInMemory(input);
       return NextResponse.json({
         success: true,
@@ -143,7 +157,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Insert Report
+    // 5. Insert Core Report without Plaintext PII (P0-2)
+    // Contact info is NEVER stored in the main reports table
     const { data: reportData, error: reportError } = await admin
       .from('reports')
       .insert({
@@ -167,17 +182,14 @@ export async function POST(req: NextRequest) {
         is_public: false,
         verified_status: false,
         tracking_secret_hash: secretHash,
-        reporter_name: input.privacy_mode === 'identified' ? input.reporter_name : null,
-        reporter_email: input.privacy_mode !== 'anonymous' ? input.reporter_email : null,
-        reporter_phone: input.privacy_mode !== 'anonymous' ? input.reporter_phone : null,
       })
       .select('id, report_number, status, created_at')
       .single();
 
     if (reportError || !reportData) {
       console.error('Database report insert error:', reportError);
-      // If table doesn't exist yet in Supabase schema, fall back to in-memory submission
-      if (reportError?.code === 'PGRST205') {
+      // In non-production only, handle schema migrating fallback
+      if (reportError?.code === 'PGRST205' && !isProductionEnvironment()) {
         console.warn('Reports table not yet migrated, saving in-memory draft.');
         const inMemoryResult = await submitInMemory(input);
         return NextResponse.json({
@@ -205,15 +217,60 @@ export async function POST(req: NextRequest) {
 
     const reportId = reportData.id;
 
-    // Insert Initial Timeline History
-    await admin.from('report_status_history').insert({
+    // 6. P0-2: Store confidential contacts encrypted in dedicated `reporter_contacts` table
+    if (input.privacy_mode !== 'anonymous') {
+      const hasContactInfo = input.reporter_name || input.reporter_email || input.reporter_phone;
+      if (hasContactInfo) {
+        const { error: contactErr } = await admin.from('reporter_contacts').insert({
+          report_id: reportId,
+          reporter_name: input.privacy_mode === 'identified' ? input.reporter_name : null,
+          encrypted_phone: input.reporter_phone ? encryptField(input.reporter_phone) : null,
+          encrypted_email: input.reporter_email ? encryptField(input.reporter_email) : null,
+          preferred_contact_method: 'in_app',
+          can_contact_for_clarification: true,
+        });
+
+        if (contactErr) {
+          console.error('Failed to store encrypted reporter contacts, rolling back report:', contactErr);
+          await admin.from('reports').delete().eq('id', reportId);
+          return NextResponse.json(
+            {
+              success: false,
+              error: {
+                code: 'SUBMISSION_FAILED',
+                message: 'Failed to securely encrypt and store reporter contact information.',
+              },
+            },
+            { status: 500 }
+          );
+        }
+      }
+    }
+
+    // 7. P1-5: Insert Initial Timeline History with atomic rollback on failure
+    const { error: histError } = await admin.from('report_status_history').insert({
       report_id: reportId,
       new_status: 'submitted',
       public_note: 'Report securely received and registered in Jababdihi system.',
       internal_rationale: 'Citizen submission intake.',
     });
 
-    // Insert Evidence Items
+    if (histError) {
+      console.error('Timeline insert failed, rolling back report:', histError);
+      await admin.from('reports').delete().eq('id', reportId);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'SUBMISSION_FAILED',
+            message: 'Failed to initialize case timeline history.',
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    // 8. P1-5: Insert Evidence Items with atomic rollback on failure
     if (input.evidence_items && input.evidence_items.length > 0) {
       const evidenceRows = input.evidence_items.map((ev) => {
         if (ev.type === 'external_link') {
@@ -245,7 +302,21 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      await admin.from('evidence').insert(evidenceRows);
+      const { error: evError } = await admin.from('evidence').insert(evidenceRows);
+      if (evError) {
+        console.error('Evidence items insert failed, rolling back report:', evError);
+        await admin.from('reports').delete().eq('id', reportId);
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'SUBMISSION_FAILED',
+              message: 'Failed to securely attach evidence items.',
+            },
+          },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({

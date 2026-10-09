@@ -4,7 +4,7 @@
  * with short-lived (10s) in-memory cache to withstand DDoS and high-volume traffic.
  */
 
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient } from '../supabase/admin.ts';
 
 export interface SafeModeConfig {
   isEnabled: boolean;
@@ -171,6 +171,21 @@ export function canAcceptSubmissions(
       allowed: false,
       message:
         'Jababdihi is currently operating under defensive Safe Mode due to elevated network traffic. Anonymous reports are temporarily paused; confidential or verified submissions remain active.',
+    };
+  }
+  return { allowed: true };
+}
+
+/**
+ * Emergency check helper for direct uploads (async authoritative)
+ */
+export async function canAcceptFileUploadsAsync(): Promise<{ allowed: boolean; message?: string }> {
+  const current = await getSafeModeStatusAsync();
+  if (current.isEnabled && current.disableFileUploads) {
+    return {
+      allowed: false,
+      message:
+        'Direct file uploads are temporarily paused under Safe Mode. You may still attach verified external evidence links (YouTube/Drive).',
     };
   }
   return { allowed: true };

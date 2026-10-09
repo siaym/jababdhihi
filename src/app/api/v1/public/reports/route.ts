@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPublicReports as getInMemoryPublicReports } from '@/services/reports';
-import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
+import { checkRateLimitAsync, getClientIp } from '@/lib/security/rate-limit';
+import { isProductionEnvironment } from '@/lib/security/auth-check';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
     const clientIp = getClientIp(req);
 
     // Rate Limiting on public querying/scraping
-    const rateCheck = checkRateLimit('public-api', clientIp);
+    const rateCheck = await checkRateLimitAsync('public-api', clientIp);
     if (!rateCheck.isAllowed) {
       return NextResponse.json(
         {
@@ -40,6 +41,18 @@ export async function GET(req: NextRequest) {
     const admin = createAdminClient();
 
     if (!admin) {
+      if (isProductionEnvironment()) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'SERVICE_UNAVAILABLE',
+              message: 'Database service unavailable in production.',
+            },
+          },
+          { status: 503 }
+        );
+      }
       const reports = await getInMemoryPublicReports({
         categoryCode,
         division,

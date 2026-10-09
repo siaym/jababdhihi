@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendCaseMessage as sendInMemory } from '@/services/reports';
-import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
-import { verifyReporterCredentials, verifyStaffSession } from '@/lib/security/auth-check';
+import { checkRateLimitAsync, getClientIp } from '@/lib/security/rate-limit';
+import {
+  verifyReporterCredentials,
+  verifyStaffSession,
+  verifyStaffCaseAccess,
+  isProductionEnvironment,
+} from '@/lib/security/auth-check';
 
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIp(req);
 
-    // 1. Rate Limiting for case messaging
-    const rateCheck = checkRateLimit('case-messages', clientIp);
+    // 1. Distributed Rate Limiting for case messaging
+    const rateCheck = await checkRateLimitAsync('case-messages', clientIp);
     if (!rateCheck.isAllowed) {
       return NextResponse.json(
         {
@@ -54,6 +59,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const admin = createAdminClient();
+    if (!admin && isProductionEnvironment()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'SERVICE_UNAVAILABLE',
+            message: 'Database messaging service unavailable in production.',
+          },
+        },
+        { status: 503 }
+      );
+    }
+
     // 2. Determine and Authenticate Sender Identity
     // Client is NEVER trusted to assert sender_type. Identity is cryptographically verified.
     let verifiedSenderType: 'reporter' | 'reviewer' = 'reporter';
@@ -65,6 +84,21 @@ export async function POST(req: NextRequest) {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const staffAuth = await verifyStaffSession(req, 'reviewer');
       if (staffAuth.authorized && staffAuth.user) {
+        // P0-3: Strictly verify reviewer case assignment before permitting messaging
+        const assignmentCheck = await verifyStaffCaseAccess(staffAuth.user, targetCaseRef);
+        if (!assignmentCheck.authorized) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: {
+                code: 'FORBIDDEN',
+                message: assignmentCheck.error || 'Reviewer access is restricted to assigned cases.',
+              },
+            },
+            { status: 403 }
+          );
+        }
+
         verifiedSenderType = 'reviewer';
         verifiedSenderId = staffAuth.user.id;
       }
@@ -117,8 +151,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const admin = createAdminClient();
-
     if (!admin) {
       // Offline/local mock development fallback
       const msg = await sendInMemory(boundReportId, verifiedSenderType, cleanText);
@@ -138,7 +170,7 @@ export async function POST(req: NextRequest) {
         message_text: cleanText,
         is_read: false,
       })
-      .select('*')
+      .select('id, report_id, sender_type, message_text, created_at')
       .single();
 
     if (error || !insertedMsg) {
@@ -155,9 +187,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Return sanitized message object: no staff IDs or metadata leaked
     return NextResponse.json({
       success: true,
-      data: insertedMsg,
+      data: {
+        id: insertedMsg.id,
+        report_id: insertedMsg.report_id,
+        sender_type: insertedMsg.sender_type,
+        message_text: insertedMsg.message_text,
+        created_at: insertedMsg.created_at,
+      },
     });
   } catch (error: any) {
     console.error('Case message API error:', error);

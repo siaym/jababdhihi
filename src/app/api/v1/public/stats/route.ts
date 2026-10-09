@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPublicStats as getInMemoryStats } from '@/services/reports';
 
+import { isProductionEnvironment } from '@/lib/security/auth-check';
+
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
@@ -9,6 +11,12 @@ export async function GET() {
     const admin = createAdminClient();
 
     if (!admin) {
+      if (isProductionEnvironment()) {
+        return NextResponse.json({
+          success: true,
+          data: { totalReports: 0, underReview: 0, verified: 0, referred: 0, resolved: 0 },
+        });
+      }
       const stats = await getInMemoryStats();
       return NextResponse.json({
         success: true,
@@ -22,7 +30,13 @@ export async function GET() {
       .select('*', { count: 'exact', head: true });
 
     if (statsError) {
-      console.warn('Reports table query error, falling back to in-memory stats:', statsError.message);
+      console.warn('Reports table query error:', statsError.message);
+      if (isProductionEnvironment()) {
+        return NextResponse.json({
+          success: true,
+          data: { totalReports: 0, underReview: 0, verified: 0, referred: 0, resolved: 0 },
+        });
+      }
       const stats = await getInMemoryStats();
       return NextResponse.json({
         success: true,

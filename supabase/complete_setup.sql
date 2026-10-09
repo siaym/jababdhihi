@@ -311,6 +311,43 @@ CREATE POLICY "Public can view resources" ON resources FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Public can view resource categories" ON resource_categories;
 CREATE POLICY "Public can view resource categories" ON resource_categories FOR SELECT USING (true);
 
+-- Strict Confidentiality: reporter contacts accessible only to Senior Reviewers & Admins
+DROP POLICY IF EXISTS "Senior reviewers and admins access reporter contacts" ON reporter_contacts;
+CREATE POLICY "Senior reviewers and admins access reporter contacts" ON reporter_contacts
+FOR ALL USING (
+    EXISTS (
+        SELECT 1 FROM profiles
+        WHERE profiles.id = auth.uid()
+          AND profiles.role IN ('senior_reviewer', 'admin')
+          AND profiles.is_active = true
+    )
+);
+
+-- Strict Evidence Access: Public can only view approved public evidence
+DROP POLICY IF EXISTS "Public can view approved public evidence" ON evidence;
+CREATE POLICY "Public can view approved public evidence" ON evidence FOR SELECT
+USING (visibility = 'public' AND review_state = 'approved');
+
+-- Case-bound Staff Evidence Access: Reviewers only access assigned cases
+DROP POLICY IF EXISTS "Staff can access assigned case evidence" ON evidence;
+CREATE POLICY "Staff can access assigned case evidence" ON evidence FOR SELECT
+USING (
+    EXISTS (
+        SELECT 1 FROM profiles
+        WHERE profiles.id = auth.uid()
+          AND profiles.is_active = true
+          AND (
+            profiles.role = 'admin'
+            OR (profiles.role = 'senior_reviewer')
+            OR (profiles.role = 'reviewer' AND EXISTS (
+                SELECT 1 FROM reports
+                WHERE reports.id = evidence.report_id
+                  AND reports.assigned_reviewer_id = auth.uid()
+            ))
+          )
+    )
+);
+
 -- 14. SEED DATA
 -- Categories (All 10 Platform Sectors)
 INSERT INTO report_categories (id, code, name_en, name_bn, description_en, description_bn, icon, display_order)
