@@ -50,6 +50,86 @@ const inMemoryReports: Report[] = [
       { time: '01:42', seconds: 102, label: 'Alleged speed fee demand without government treasury receipt' },
       { time: '02:30', seconds: 150, label: 'Officer refuses official challan and withholds ignition key' },
     ],
+    verification_context: {
+      reviewed_by: 'Senior Legal & Media Review Desk',
+      review_date: '2026-09-14',
+      status_explanation: 'This report is currently Under Review. Video metadata and location have been authenticated, but official institutional inquiry findings remain pending.',
+      authenticity_assessment: 'Video recording verified as unedited continuous footage with matching ambient evening daylight and authentic road infrastructure geometry.',
+      what_is_verified: [
+        'Geographic location matches Mirpur 10 roundabout commercial bank signage and road median.',
+        'Timestamp and lighting correlate with sunset transition on 13 September 2026 (approx. 20:30 BST).',
+        'Motorcycle registration papers visible on camera were cross-referenced and confirmed currently active in BRTA records.',
+      ],
+      what_remains_unverified: [
+        'Identity and official badge code of the officer conducting the verbal transaction.',
+        'Whether an internal DMP traffic challan docket was issued after recording concluded.',
+        'Alleged private conversation prior to video recording initiation.',
+      ],
+      methodology_summary: 'Civic accountability standard: Public footage is reviewed to verify time, location, continuity, and safety. A report is an allegation under review, not a judicial finding.',
+    },
+    official_response: {
+      entity_name: 'Dhaka Metropolitan Police (Mirpur Traffic Division)',
+      response_date: '2026-09-15',
+      status: 'investigating',
+      statement: 'The concerned Traffic Division has noted public reports regarding an incident at Mirpur 10 roundabout. An Assistant Commissioner has been deputed to examine duty rosters and checkpoint records for the evening of 13 September 2026.',
+      action_taken: 'Internal fact-finding inquiry opened; duty log requested for evening shift.',
+      contact_department: 'Traffic Control Room / Public Relations Office',
+    },
+    next_steps: {
+      referral_status: 'Forwarded to DMP Internal Oversight & Traffic Directorate for formal review.',
+      next_milestones: [
+        'Verification of officer duty rosters for 13 September shift.',
+        'Filing of Right to Information (RTI) application for checkpoint operational log.',
+        'Review of any closed-circuit surveillance footage from adjacent retail buildings.',
+      ],
+      helplines: [
+        {
+          title: 'DMP Traffic Control Helpline',
+          number: '01713-398500',
+          note: 'Direct line for reporting unlawful checkpoint demands or seeking traffic assistance.',
+          authority: 'Dhaka Metropolitan Police',
+        },
+        {
+          title: 'Anti-Corruption Commission (ACC) Hotline',
+          number: '106',
+          note: 'Toll-free national hotline for reporting public servant extortion or bribery demands.',
+          authority: 'Anti-Corruption Commission Bangladesh',
+        },
+        {
+          title: 'National Emergency Service',
+          number: '999',
+          note: 'Immediate emergency police dispatch if in immediate physical jeopardy.',
+          authority: 'Ministry of Home Affairs',
+        },
+      ],
+      how_to_corroborate: 'Commuters or eyewitnesses who were present at Mirpur 10 roundabout on 13 September between 20:15 and 20:45 may submit corroborating timestamps or receipts using the secure track reference.',
+    },
+    timeline_updates: [
+      {
+        date: '2026-09-13',
+        title: 'Incident Occurred & Footage Archived',
+        details: 'Citizen recorded interaction during vehicle documentation check and submitted video via encrypted portal.',
+        status: 'received',
+      },
+      {
+        date: '2026-09-14',
+        title: 'Evidentiary Pre-Screening & EXIF Scrub',
+        details: 'Footage validated for absence of digital tampering; civilian bystander faces masked to prevent harassment.',
+        status: 'under_review',
+      },
+      {
+        date: '2026-09-15',
+        title: 'Notice Transmitted to DMP Traffic Division',
+        details: 'Formal memorandum sent to regional traffic supervisory desk noting documented allegations.',
+        status: 'under_review',
+      },
+    ],
+    transcript: [
+      { time: '00:15', speaker: 'Commuter', text: 'Good evening officer. Here are my valid digital registration certificate and road tax token.' },
+      { time: '01:05', speaker: 'Duty Officer', text: 'Keep the phone down. The papers need further verification at the station unless settled here.' },
+      { time: '01:42', speaker: 'Commuter', text: 'If there is a fine, please issue a formal slip or digital challan with the government treasury code.' },
+      { time: '02:30', speaker: 'Duty Officer', text: 'There is no challan slip available now. Hand over five thousand or leave the vehicle key.' },
+    ],
   },
   {
     id: 'rep-002',
@@ -80,6 +160,99 @@ const inMemoryReports: Report[] = [
     evidence_count: 3,
     views_count: 8940,
     comments_count: 52,
+    verification_context: {
+      reviewed_by: 'Campus Rights & Institutional Fact-Check Team',
+      review_date: '2026-09-22',
+      status_explanation: 'This report has achieved Verified Status. Physical location, hospital outpatient records, and official Provost receipt stamps have been corroborated.',
+      authenticity_assessment: 'Photographs examined with cryptographic hash consistency. Medical outpatient receipt and Proctorial stamped petition verified by university contacts.',
+      what_is_verified: [
+        'Corridor physical architecture matches Alaol Hall Block C 3rd Floor interior.',
+        'Petition docket bears genuine inked date stamp and registration signature of the Hall Provost Office dated 19 September 2026.',
+        'Victim sought outpatient care at Chittagong Medical College Hospital following intimidation; confidential triage summary reviewed.',
+      ],
+      what_remains_unverified: [
+        'Names and academic departments of all senior students present in the guest room during the midnight assembly.',
+        'Whether disciplinary warnings had been issued to the involved student committee in preceding semesters.',
+      ],
+      methodology_summary: 'All identifying personal data of the victim and student witnesses has been redacted. Photographic evidence confirms location and official complaint lodgment.',
+    },
+    official_response: {
+      entity_name: 'Office of the Proctor, University of Chittagong',
+      response_date: '2026-09-22',
+      status: 'acknowledged',
+      statement: 'The Proctorial Body has received formal notification regarding alleged ragging at Alaol Hall. A 3-member inquiry committee has been constituted under the University Disciplinary Ordinance.',
+      action_taken: 'Inquiry committee formed; student petitioner provided temporary protective accommodation outside the dormitory block.',
+      contact_department: 'Proctorial Office / Student Welfare Directorate',
+    },
+    next_steps: {
+      referral_status: 'Case referred to University Disciplinary Board and National Human Rights Commission (Student Rights Cell).',
+      next_milestones: [
+        'Inquiry committee preliminary hearing with hall provost and resident tutors.',
+        'Submission of inquiry findings to University Syndicate within 21 working days.',
+        'Independent legal aid review by human rights advocacy counsel.',
+      ],
+      helplines: [
+        {
+          title: 'University Proctorial Emergency Cell',
+          number: '01711-892400',
+          note: 'Direct line for residential hall harassment and emergency safety intervention.',
+          authority: 'University of Chittagong',
+        },
+        {
+          title: 'Ain o Salish Kendra (ASK) Legal Aid Desk',
+          number: '01729-264868',
+          note: 'Free legal counseling and protection assistance for student victims of hazing and violence.',
+          authority: 'Human Rights Legal Aid NGO',
+        },
+        {
+          title: 'National Women & Children Support Hotline',
+          number: '109',
+          note: 'National toll-free support helpline for abuse, violence, and intimidation counseling.',
+          authority: 'Ministry of Women and Children Affairs',
+        },
+      ],
+      how_to_corroborate: 'Current residents of Alaol Hall with relevant knowledge of late-night mandatory attendance summons may submit confidential statements via report tracking.',
+    },
+    timeline_updates: [
+      {
+        date: '2026-09-18',
+        title: 'Hazing Incident Occurred',
+        details: 'First-year student summoned to dormitory guest room and subjected to physical intimidation.',
+        status: 'received',
+      },
+      {
+        date: '2026-09-19',
+        title: 'Formal Petition Lodged with Hall Provost',
+        details: 'Victim submitted stamped complaint docket; fellow students documented corridor assembly.',
+        status: 'under_review',
+      },
+      {
+        date: '2026-09-22',
+        title: 'Evidentiary Corroboration & Verification',
+        details: 'Medical notes and hall receipt stamps authenticated; public dossier approved with redactions.',
+        status: 'verified',
+      },
+    ],
+    image_annotations: [
+      {
+        frame_index: 0,
+        title: 'Third-Floor Corridor Environment',
+        observation: 'Shows the residential hallway outside room 314 where students were instructed to assemble after hours. Note lack of surveillance cameras.',
+        verification_status: 'verified',
+      },
+      {
+        frame_index: 1,
+        title: 'Official Provost Acknowledgment Docket',
+        observation: 'Physical petition signed and stamped by hall administrative staff on 19 September 2026. Student registration number blurred for safety.',
+        verification_status: 'verified',
+      },
+      {
+        frame_index: 2,
+        title: 'Daytime Student Assembly Outside Administration',
+        observation: 'Students gathering peacefully to demand enforcement of anti-ragging policies following disclosure of the incident.',
+        verification_status: 'verified',
+      },
+    ],
   },
   {
     id: 'rep-003',
@@ -110,6 +283,70 @@ const inMemoryReports: Report[] = [
     evidence_count: 2,
     views_count: 6180,
     comments_count: 19,
+    verification_context: {
+      reviewed_by: 'Public Administration & Land Governance Desk',
+      review_date: '2026-09-28',
+      status_explanation: 'This report has been Referred to the Anti-Corruption Commission. Documentary proof of unrecorded fee demands was verified against the statutory registration fee schedule.',
+      authenticity_assessment: 'Scanned registration file jacket demonstrates manual pencil notations matching unrecorded speed fee rates commonly reported at this sub-registry office.',
+      what_is_verified: [
+        'Document serial corresponds to active land title transfer file at Boalia Sub-Registry.',
+        'Statutory registration fee schedule published on Ministry of Law portal indicates total lawful fees are BDT 2,400, not BDT 10,400.',
+      ],
+      what_remains_unverified: [
+        'Direct identification of the unofficial intermediary (dalal) who demanded cash payment in the corridor.',
+      ],
+      methodology_summary: 'Verified discrepancy between statutory government schedule and demanded payment.',
+    },
+    official_response: {
+      entity_name: 'District Registrar Office, Rajshahi',
+      response_date: '2026-09-29',
+      status: 'pending',
+      statement: 'The District Registrar has instructed all sub-registry offices in the district to display official fee citizen charters conspicuously in service areas.',
+      action_taken: 'Notice issued; administrative inspection scheduled for Boalia office.',
+      contact_department: 'District Registration Directorate',
+    },
+    next_steps: {
+      referral_status: 'Referred to Anti-Corruption Commission (ACC) Integrated District Office Rajshahi.',
+      next_milestones: [
+        'ACC preliminary verification docket assignment.',
+        'Citizens Advice Bureau audit of service delivery turnaround times at Boalia office.',
+      ],
+      helplines: [
+        {
+          title: 'ACC Land Sector Grievance Hotline',
+          number: '106',
+          note: 'Direct reporting of unreceipted fees and bribery demands in land deed registration.',
+          authority: 'Anti-Corruption Commission',
+        },
+        {
+          title: 'Government Citizen Services Grievance Redress System (GRS)',
+          number: '333',
+          note: 'Official portal for filing administrative complaints against government service delays.',
+          authority: 'Cabinet Division & a2i',
+        },
+      ],
+      how_to_corroborate: 'Citizens who experienced fee overcharging at the Boalia Sub-Registry during September 2026 can submit fee slips.',
+    },
+    timeline_updates: [
+      {
+        date: '2026-09-25',
+        title: 'Deed Application Submitted',
+        details: 'Service-seeker presented lawful deed transfer papers and was instructed to pay speed fee.',
+        status: 'received',
+      },
+      {
+        date: '2026-09-28',
+        title: 'Fee Discrepancy Verified',
+        details: 'Statutory fee table cross-referenced against demands.',
+        status: 'verified',
+      },
+      {
+        date: '2026-09-29',
+        title: 'Dossier Referred to ACC',
+        details: 'Complaint forwarded to ACC regional office for administrative audit.',
+        status: 'referred',
+      },
+    ],
   },
 ];
 

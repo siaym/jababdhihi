@@ -85,7 +85,70 @@ export interface Report {
   evidence_count?: number;
   views_count?: number;
   comments_count?: number;
+  comments_disabled?: boolean;
   key_timestamps?: { time: string; seconds: number; label: string }[];
+  verification_context?: EvidenceVerificationContext;
+  official_response?: OfficialEntityResponse;
+  next_steps?: NextStepsAndResources;
+  timeline_updates?: TimelineUpdate[];
+  transcript?: TranscriptMoment[];
+  image_annotations?: ImageAnnotationDetail[];
+}
+
+export interface EvidenceVerificationContext {
+  reviewed_by: string;
+  review_date: string;
+  status_explanation: string;
+  what_is_verified: string[];
+  what_remains_unverified: string[];
+  methodology_summary?: string;
+  authenticity_assessment?: string;
+}
+
+export interface OfficialEntityResponse {
+  entity_name: string;
+  response_date: string;
+  status: 'pending' | 'acknowledged' | 'investigating' | 'resolved' | 'no_response';
+  statement: string;
+  action_taken?: string;
+  document_reference?: string;
+  contact_department?: string;
+}
+
+export interface OfficialHelpline {
+  title: string;
+  number: string;
+  note: string;
+  authority: string;
+}
+
+export interface NextStepsAndResources {
+  referral_status?: string;
+  next_milestones: string[];
+  helplines: OfficialHelpline[];
+  how_to_corroborate?: string;
+  tracking_info?: string;
+}
+
+export interface TimelineUpdate {
+  date: string;
+  title: string;
+  details: string;
+  status: string;
+  actor?: string;
+}
+
+export interface TranscriptMoment {
+  time: string;
+  speaker: string;
+  text: string;
+}
+
+export interface ImageAnnotationDetail {
+  frame_index: number;
+  title: string;
+  observation: string;
+  verification_status: 'verified' | 'unverified' | 'pending';
 }
 
 export interface PublicComment {

@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { VideoReportLayout } from '@/components/reports/VideoReportLayout';
 import { ImageReportLayout } from '@/components/reports/ImageReportLayout';
+import { CommentsSection } from '@/components/reports/CommentsSection';
 
 export default function PublicReportDetailPage() {
   const { locale, t } = useI18n();
@@ -216,7 +217,8 @@ export default function PublicReportDetailPage() {
         />
       ) : (
         /* Fallback for Document / General Case Reports */
-        <Card className="border-slate-200 shadow-sm">
+        <>
+          <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100 pb-5 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -293,6 +295,16 @@ export default function PublicReportDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Public Discussion */}
+        <CommentsSection
+          reportId={report.id}
+          reportNumber={report.report_number}
+          initialComments={comments}
+          commentsDisabled={report.comments_disabled}
+          locale={locale}
+        />
+      </>
       )}
     </div>
   );
