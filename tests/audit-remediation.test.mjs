@@ -151,7 +151,10 @@ test('P0-4: Privacy allow-list projection eliminates sensitive leakages', () => 
 test('P0-5: Public evidence requires explicit approved review state', () => {
   // Decision matrix simulation matching signed-view/route.ts logic
   function isPubliclyAccessible(evidence) {
-    return evidence.visibility === 'public' && evidence.review_state === 'approved';
+    return (
+      evidence.visibility === 'public' &&
+      (evidence.review_state === 'accepted' || evidence.review_state === 'approved')
+    );
   }
 
   // Pending public evidence CANNOT be viewed publicly
@@ -160,10 +163,12 @@ test('P0-5: Public evidence requires explicit approved review state', () => {
   // Flagged public evidence CANNOT be viewed publicly
   assert.equal(isPubliclyAccessible({ visibility: 'public', review_state: 'flagged' }), false);
 
-  // Private evidence CANNOT be viewed publicly even if approved
+  // Private evidence CANNOT be viewed publicly even if approved/accepted
   assert.equal(isPubliclyAccessible({ visibility: 'private', review_state: 'approved' }), false);
+  assert.equal(isPubliclyAccessible({ visibility: 'private', review_state: 'accepted' }), false);
 
-  // Only approved public evidence can be served to unauthenticated visitors
+  // Accepted or approved public evidence can be served to unauthenticated visitors
+  assert.equal(isPubliclyAccessible({ visibility: 'public', review_state: 'accepted' }), true);
   assert.equal(isPubliclyAccessible({ visibility: 'public', review_state: 'approved' }), true);
 });
 

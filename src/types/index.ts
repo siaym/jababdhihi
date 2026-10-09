@@ -40,6 +40,7 @@ export type EvidenceReviewState =
   | 'accessible'
   | 'reviewed'
   | 'accepted'
+  | 'approved'
   | 'rejected'
   | 'unavailable';
 

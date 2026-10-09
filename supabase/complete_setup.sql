@@ -323,10 +323,10 @@ FOR ALL USING (
     )
 );
 
--- Strict Evidence Access: Public can only view approved public evidence
+-- Strict Evidence Access: Public can only view accepted/approved public evidence
 DROP POLICY IF EXISTS "Public can view approved public evidence" ON evidence;
 CREATE POLICY "Public can view approved public evidence" ON evidence FOR SELECT
-USING (visibility = 'public' AND review_state = 'approved');
+USING (visibility = 'public' AND review_state::text IN ('accepted', 'approved'));
 
 -- Case-bound Staff Evidence Access: Reviewers only access assigned cases
 DROP POLICY IF EXISTS "Staff can access assigned case evidence" ON evidence;

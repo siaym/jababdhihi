@@ -99,8 +99,12 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. P0-5: Public evidence review state check
-    // Evidence is only publicly accessible if visibility is 'public' AND review_state is 'approved'
-    if (evidence.visibility === 'public' && evidence.review_state === 'approved') {
+    // Evidence is only publicly accessible if visibility is 'public' AND review_state is accepted/approved
+    const isApprovedPublic =
+      evidence.visibility === 'public' &&
+      (evidence.review_state === 'accepted' || evidence.review_state === 'approved');
+
+    if (isApprovedPublic) {
       const ttl = Math.min(Math.max(60, expiresInSeconds || 900), 3600);
       const signedUrl = await getSignedEvidenceViewUrl(evidence.storage_path, ttl);
 
