@@ -23,31 +23,31 @@ ON CONFLICT (code) DO NOTHING;
 -- 2. SEED ORGANIZATION TYPES
 INSERT INTO organization_types (id, code, name_en, name_bn)
 VALUES
-  ('o0000001-0000-0000-0000-000000000001', 'police', 'Police Thana / Department', 'থানা ও পুলিশ বিভাগ'),
-  ('o0000001-0000-0000-0000-000000000002', 'university', 'University / Higher Ed', 'বিশ্ববিদ্যালয় ও উচ্চশিক্ষা'),
-  ('o0000001-0000-0000-0000-000000000003', 'government', 'Government Administrative Office', 'সরকারি প্রশাসনিক দপ্তর'),
-  ('o0000001-0000-0000-0000-000000000004', 'hospital', 'Public Hospital', 'সরকারি হাসপাতাল')
+  ('a0000001-0000-0000-0000-000000000001', 'police', 'Police Thana / Department', 'থানা ও পুলিশ বিভাগ'),
+  ('a0000001-0000-0000-0000-000000000002', 'university', 'University / Higher Ed', 'বিশ্ববিদ্যালয় ও উচ্চশিক্ষা'),
+  ('a0000001-0000-0000-0000-000000000003', 'government', 'Government Administrative Office', 'সরকারি প্রশাসনিক দপ্তর'),
+  ('a0000001-0000-0000-0000-000000000004', 'hospital', 'Public Hospital', 'সরকারি হাসপাতাল')
 ON CONFLICT (code) DO NOTHING;
 
 -- 3. SEED INITIAL ORGANIZATIONS
 INSERT INTO organizations (type_id, name_en, name_bn, slug, division, district, is_verified)
 VALUES
-  ('o0000001-0000-0000-0000-000000000001', 'Dhaka Metropolitan Police (Mirpur Thana)', 'মিরপুর মডেল থানা', 'dmp-mirpur-thana', 'Dhaka', 'Dhaka', true),
-  ('o0000001-0000-0000-0000-000000000002', 'University of Chittagong', 'চট্টগ্রাম বিশ্ববিদ্যালয়', 'chittagong-university', 'Chattogram', 'Chattogram', true),
-  ('o0000001-0000-0000-0000-000000000003', 'Bangladesh Road Transport Authority (BRTA)', 'বাংলাদেশ সড়ক পরিবহন কর্তৃপক্ষ (বিআরটিএ)', 'brta-headquarters', 'Dhaka', 'Dhaka', true),
-  ('o0000001-0000-0000-0000-000000000004', 'Rajshahi Medical College Hospital', 'রাজশাহী মেডিকেল কলেজ হাসপাতাল', 'rajshahi-medical-hospital', 'Rajshahi', 'Rajshahi', true)
+  ('a0000001-0000-0000-0000-000000000001', 'Dhaka Metropolitan Police (Mirpur Thana)', 'মিরপুর মডেল থানা', 'dmp-mirpur-thana', 'Dhaka', 'Dhaka', true),
+  ('a0000001-0000-0000-0000-000000000002', 'University of Chittagong', 'চট্টগ্রাম বিশ্ববিদ্যালয়', 'chittagong-university', 'Chattogram', 'Chattogram', true),
+  ('a0000001-0000-0000-0000-000000000003', 'Bangladesh Road Transport Authority (BRTA)', 'বাংলাদেশ সড়ক পরিবহন কর্তৃপক্ষ (বিআরটিএ)', 'brta-headquarters', 'Dhaka', 'Dhaka', true),
+  ('a0000001-0000-0000-0000-000000000004', 'Rajshahi Medical College Hospital', 'রাজশাহী মেডিকেল কলেজ হাসপাতাল', 'rajshahi-medical-hospital', 'Rajshahi', 'Rajshahi', true)
 ON CONFLICT (slug) DO NOTHING;
 
 -- 4. SEED EMERGENCY CIVIC RESOURCES
 INSERT INTO resource_categories (id, name_en, name_bn, slug)
 VALUES
-  ('r0000001-0000-0000-0000-000000000001', 'Emergency Services', 'জরুরি সেবা', 'emergency'),
-  ('r0000001-0000-0000-0000-000000000002', 'Legal Aid & Human Rights', 'আইনি সহায়তা ও মানবাধিকার', 'legal-aid')
+  ('e0000001-0000-0000-0000-000000000001', 'Emergency Services', 'জরুরি সেবা', 'emergency'),
+  ('e0000001-0000-0000-0000-000000000002', 'Legal Aid & Human Rights', 'আইনি সহায়তা ও মানবাধিকার', 'legal-aid')
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO resources (category_id, title_en, title_bn, hotline_number, website_url, is_official_emergency)
 VALUES
-  ('r0000001-0000-0000-0000-000000000001', 'National Emergency Service', 'জাতীয় জরুরি সেবা', '999', 'https://www.police.gov.bd', true),
-  ('r0000001-0000-0000-0000-000000000001', 'Violence Against Women & Children Helpline', 'নারী ও শিশু নির্যাতন প্রতিরোধ হেল্পলাইন', '109', 'https://www.mowca.gov.bd', true),
-  ('r0000001-0000-0000-0000-000000000001', 'Government Information & Citizen Hotline', 'সরকারি তথ্য ও নাগরিক সেবা', '333', 'https://a2i.gov.bd', true),
-  ('r0000001-0000-0000-0000-000000000001', 'Anti-Corruption Commission (DUDOK)', 'দুদক হটলাইন', '106', 'https://acc.org.bd', true);
+  ('e0000001-0000-0000-0000-000000000001', 'National Emergency Service', 'জাতীয় জরুরি সেবা', '999', 'https://www.police.gov.bd', true),
+  ('e0000001-0000-0000-0000-000000000001', 'Violence Against Women & Children Helpline', 'নারী ও শিশু নির্যাতন প্রতিরোধ হেল্পলাইন', '109', 'https://www.mowca.gov.bd', true),
+  ('e0000001-0000-0000-0000-000000000001', 'Government Information & Citizen Hotline', 'সরকারি তথ্য ও নাগরিক সেবা', '333', 'https://a2i.gov.bd', true),
+  ('e0000001-0000-0000-0000-000000000001', 'Anti-Corruption Commission (DUDOK)', 'দুদক হটলাইন', '106', 'https://acc.org.bd', true);
