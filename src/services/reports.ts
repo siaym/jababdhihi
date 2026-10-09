@@ -35,6 +35,13 @@ const inMemoryReports: Report[] = [
       'A commuter riding through Mirpur 10 roundabout was stopped at an evening traffic checkpoint. According to the commuter and recorded video footage, the duty officer allegedly withheld the vehicle key and demanded 5,000 taka in cash rather than issuing an official government challan slip, despite the rider presenting valid digital registration papers.\n\nThe video shows the conversation between the rider and the officer, the request for a formal receipt, and the refusal to issue one. The officer\'s identity and whether any formal record was later filed at the station have not yet been determined.',
     public_summary:
       'Commuter questions traffic police cash demand at Mirpur checkpoint',
+    what_media_shows:
+      'Continuous two-minute recording showing a motorcycle rider being stopped at the Mirpur 10 roundabout checkpoint. The commuter presents digital registration credentials on a smartphone. The duty officer is seen withholding the motorcycle ignition key and stating that payment must be settled on the spot without an official challan slip.',
+    what_remains_unclear:
+      'The officer badge number was obscured in low evening lighting. It has not yet been independently corroborated whether an official paper case was filed at Mirpur Model Thana after the recording concluded.',
+    thumbnail_url: '/images/mirpur-traffic-checkpoint-demo.jpg',
+    relationship_reason: 'Traffic & Law Enforcement',
+    is_demo: true,
     status: 'under_review',
     priority: 2,
     is_public: true,
@@ -106,22 +113,22 @@ const inMemoryReports: Report[] = [
     },
     timeline_updates: [
       {
-        date: '2026-09-13',
-        title: 'Incident Occurred & Footage Archived',
-        details: 'Citizen recorded interaction during vehicle documentation check and submitted video via encrypted portal.',
-        status: 'received',
+        date: '2026-09-15',
+        title: 'DMP Mirpur Traffic Division Acknowledged Report',
+        details: 'An Assistant Commissioner was deputed to examine evening duty logs and checkpoint rosters. This is an administrative inquiry notice, not a final finding regarding the allegation.',
+        status: 'under_review',
       },
       {
         date: '2026-09-14',
-        title: 'Evidentiary Pre-Screening & EXIF Scrub',
-        details: 'Footage validated for absence of digital tampering; civilian bystander faces masked to prevent harassment.',
+        title: 'Evidentiary Pre-Screening & Metadata Scrub',
+        details: 'Footage validated for absence of tampering; civilian bystander faces and private registration numbers blurred.',
         status: 'under_review',
       },
       {
-        date: '2026-09-15',
-        title: 'Notice Transmitted to DMP Traffic Division',
-        details: 'Formal memorandum sent to regional traffic supervisory desk noting documented allegations.',
-        status: 'under_review',
+        date: '2026-09-13',
+        title: 'Incident Occurred & Encrypted Intake',
+        details: 'Citizen recorded interaction during vehicle documentation check and submitted video via encrypted portal.',
+        status: 'received',
       },
     ],
     transcript: [
@@ -362,14 +369,15 @@ const inMemoryEvidence: Record<string, EvidenceItem[]> = {
     {
       id: 'ev-1',
       report_id: 'rep-001',
-      evidence_type: 'external_link',
-      provider: 'youtube',
-      external_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      external_platform_id: 'dQw4w9WgXcQ',
+      evidence_type: 'video',
+      provider: 'direct_upload',
+      storage_path: '/images/mirpur-traffic-checkpoint-demo.jpg',
+      mime_type: 'video/mp4',
+      file_size_bytes: 18450000,
       is_embeddable: true,
       visibility: 'public',
       review_state: 'accepted',
-      caption: 'Full bystander video footage captured at the Mirpur 10 checkpoint interaction',
+      caption: 'Continuous bystander footage of vehicle checkpoint documentation check (Demonstration sample)',
       created_at: '2026-09-13T09:16:00Z',
     },
     {
@@ -813,10 +821,32 @@ export async function getPublicReportByNumber(reportNumber: string): Promise<{
   const allEv = inMemoryEvidence[report.id] || [];
   const publicEv = allEv.filter((e) => e.visibility === 'public');
 
-  // Related reports
+  // Related reports with explicit relationship reasons and distinct thumbnails
   const relatedReports = inMemoryReports
     .filter((r) => r.id !== report.id && r.is_public)
-    .slice(0, 4);
+    .map((r) => {
+      let relReason = r.category?.name_en || 'Public Interest';
+      if (r.division === report.division) {
+        relReason = `Same district: ${r.district || r.division}`;
+      } else if (r.category_id === report.category_id) {
+        relReason = `Same category: ${r.category?.name_en}`;
+      } else if (r.institution_type === report.institution_type) {
+        relReason = `Related agency: ${r.institution_type}`;
+      }
+      return {
+        ...r,
+        relationship_reason: relReason,
+        thumbnail_url:
+          r.id === 'rep-001'
+            ? '/images/mirpur-traffic-checkpoint-demo.jpg'
+            : r.id === 'rep-002'
+            ? '/images/evidence-campus-corridor.jpg'
+            : r.id === 'rep-003'
+            ? '/images/evidence-complaint-document.jpg'
+            : '/images/hero-bangladesh.jpg',
+      };
+    })
+    .slice(0, 3);
 
   // Moderated comments
   const comments = inMemoryComments[report.id] || [];

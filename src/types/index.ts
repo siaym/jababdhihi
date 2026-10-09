@@ -93,6 +93,11 @@ export interface Report {
   timeline_updates?: TimelineUpdate[];
   transcript?: TranscriptMoment[];
   image_annotations?: ImageAnnotationDetail[];
+  what_media_shows?: string;
+  what_remains_unclear?: string;
+  relationship_reason?: string;
+  thumbnail_url?: string;
+  is_demo?: boolean;
 }
 
 export interface EvidenceVerificationContext {

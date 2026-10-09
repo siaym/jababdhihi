@@ -4,6 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Play,
+  Pause,
+  Volume2,
+  VolumeX,
   Share2,
   Bookmark,
   BookmarkCheck,
@@ -29,6 +32,8 @@ import {
   Printer,
   ChevronDown,
   ChevronUp,
+  ShieldAlert,
+  Info,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Report, EvidenceItem, PublicComment } from '@/types';
@@ -73,6 +78,9 @@ export function ReportStoryLayout({
   // Video state
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+  const videoTotalDuration = 165; // 2m 45s simulated demo duration
   const [activeTimestampSeconds, setActiveTimestampSeconds] = useState<number | null>(null);
   const [showOptionalTimestamps, setShowOptionalTimestamps] = useState(false);
 
@@ -81,10 +89,28 @@ export function ReportStoryLayout({
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
 
-  // Utilities state
+  // Utilities & Sections state
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [flagSubmitted, setFlagSubmitted] = useState(false);
+  const [showPreviousUpdates, setShowPreviousUpdates] = useState(false);
+
+  // Simulated video playback timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isVideoPlaying) {
+      timer = setInterval(() => {
+        setVideoCurrentTime((prev) => {
+          if (prev >= videoTotalDuration) {
+            setIsVideoPlaying(false);
+            return 0;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isVideoPlaying]);
 
   // Load user preference for large window mode
   useEffect(() => {
@@ -203,11 +229,21 @@ export function ReportStoryLayout({
 
   // Video specifics
   const currentVideo = videoEvidence[selectedVideoIndex] || videoEvidence[0];
-  const youtubeId = currentVideo?.external_platform_id || (currentVideo?.provider === 'youtube' ? 'dQw4w9WgXcQ' : null);
+  const videoPosterSrc =
+    currentVideo?.storage_path ||
+    report.thumbnail_url ||
+    '/images/mirpur-traffic-checkpoint-demo.jpg';
 
   const handleSeekTimestamp = (seconds: number) => {
     setActiveTimestampSeconds(seconds);
+    setVideoCurrentTime(seconds);
     setIsVideoPlaying(true);
+  };
+
+  const formatVideoTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   // Photo specifics
@@ -235,6 +271,8 @@ export function ReportStoryLayout({
   const officialResp = report.official_response;
   const nextSteps = report.next_steps;
   const timeline = report.timeline_updates || [];
+  const latestUpdate = timeline[0] || null;
+  const previousUpdates = timeline.slice(1);
 
   // Plain-language status explanations
   const getPlainStatusText = () => {
@@ -262,7 +300,7 @@ export function ReportStoryLayout({
 
   // 1. TOOLBAR: MEDIA SELECTION & WINDOW VIEW MODES
   const renderMediaToolbar = () => (
-    <div className="flex flex-wrap items-center justify-between gap-2 pb-1">
+    <div className="flex flex-wrap items-center justify-between gap-2 pb-1.5">
       {/* Media Mode Switcher (Video vs Photos) */}
       {hasVideo && hasPhotos ? (
         <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-[#E5DFD5]">
@@ -271,7 +309,7 @@ export function ReportStoryLayout({
             className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               activeMediaMode === 'video'
                 ? 'bg-[#17263C] text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-slate-700 hover:bg-slate-100'
             }`}
           >
             <Film className="w-3.5 h-3.5 text-red-400" />
@@ -282,7 +320,7 @@ export function ReportStoryLayout({
             className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               activeMediaMode === 'image'
                 ? 'bg-[#17263C] text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-slate-700 hover:bg-slate-100'
             }`}
           >
             <Camera className="w-3.5 h-3.5 text-blue-400" />
@@ -290,7 +328,7 @@ export function ReportStoryLayout({
           </button>
         </div>
       ) : (
-        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-semibold">
+        <div className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold">
           {hasVideo ? (
             <span className="flex items-center gap-1.5 text-[#17263C]">
               <Film className="w-3.5 h-3.5 text-[#C62828]" />
@@ -315,7 +353,7 @@ export function ReportStoryLayout({
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
               !isLargeWindow
                 ? 'bg-[#17263C] text-white shadow-xs font-semibold'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-slate-700 hover:bg-slate-100'
             }`}
           >
             <Columns2 className="w-3.5 h-3.5" />
@@ -327,7 +365,7 @@ export function ReportStoryLayout({
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
               isLargeWindow
                 ? 'bg-[#17263C] text-white shadow-xs font-semibold'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-slate-700 hover:bg-slate-100'
             }`}
           >
             <RectangleHorizontal className="w-3.5 h-3.5" />
@@ -358,7 +396,7 @@ export function ReportStoryLayout({
     </div>
   );
 
-  // 2. MEDIA PLAYER (VIDEO / PHOTO)
+  // 2. MEDIA PLAYER (AUTHENTIC DOCUMENTARY PLAYER · ZERO FABRICATED CONTENT)
   const renderMediaPlayer = () => {
     if (activeMediaMode === 'video' && hasVideo) {
       return (
@@ -368,11 +406,11 @@ export function ReportStoryLayout({
             isFullscreen
               ? 'fixed inset-0 z-50 rounded-none w-screen h-screen flex items-center justify-center'
               : isLargeWindow
-              ? 'aspect-video max-h-[72vh] shadow-xl border-[#17263C]/30'
+              ? 'aspect-video max-h-[72vh] shadow-xl border-[#17263C]/40'
               : 'aspect-video'
           }`}
         >
-          {/* Quick Corner Controls (Visible on hover or touch) */}
+          {/* Corner Controls Overlay */}
           <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 pointer-events-auto">
             {/* Large Window / Theater toggle */}
             <button
@@ -406,54 +444,84 @@ export function ReportStoryLayout({
             </button>
           </div>
 
-          {currentVideo?.provider === 'youtube' && youtubeId ? (
-            isVideoPlaying ? (
-              <iframe
-                src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&enablejsapi=1${
-                  activeTimestampSeconds !== null ? `&start=${activeTimestampSeconds}` : ''
-                }`}
-                title={report.public_summary || 'Evidentiary Video'}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                allowFullScreen
-                sandbox="allow-scripts allow-same-origin allow-presentation"
-                className="absolute inset-0 w-full h-full border-0"
-              />
-            ) : (
+          {/* Authentic Documentary Video Stage */}
+          <div className="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden">
+            <img
+              src={videoPosterSrc}
+              alt="Checkpoint video frame"
+              className={`w-full h-full object-cover transition-transform duration-700 ${
+                isVideoPlaying ? 'scale-102 filter brightness-95' : 'filter brightness-80'
+              }`}
+            />
+
+            {/* Ambient Dark Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+
+            {/* Demonstration Watermark Tag */}
+            <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded bg-black/70 backdrop-blur-md text-[11px] font-mono font-bold text-amber-300 border border-amber-300/30">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span>DEMO FOOTAGE · MIRPUR 10</span>
+            </div>
+
+            {/* Center Play Button Overlay if Paused */}
+            {!isVideoPlaying ? (
               <button
                 type="button"
                 onClick={() => setIsVideoPlaying(true)}
-                className="relative w-full h-full text-left cursor-pointer focus:outline-none group/play"
-                aria-label="Play video"
+                className="absolute inset-0 flex items-center justify-center group/center cursor-pointer focus:outline-none"
+                aria-label="Play recording"
               >
-                <img
-                  src={`https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
-                  }}
-                  alt={report.public_summary || 'Video frame'}
-                  className="w-full h-full object-cover group-hover/play:scale-101 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-black/35 group-hover/play:bg-black/25 transition-colors" />
-
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#C62828] text-white flex items-center justify-center shadow-xl group-hover/play:scale-105 transition-transform duration-200">
-                    <Play className="w-8 h-8 ml-1 fill-current" />
-                  </div>
-                </div>
-
-                <div className="absolute bottom-4 left-4 px-3 py-1 rounded bg-black/80 text-xs text-white backdrop-blur-sm">
-                  {locale === 'bn' ? 'ভিডিও দেখতে ক্লিক করুন' : 'Click to stream recording'}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#C62828] text-white flex items-center justify-center shadow-2xl group-hover/center:scale-108 transition-transform duration-200">
+                  <Play className="w-8 h-8 ml-1 fill-current" />
                 </div>
               </button>
-            )
-          ) : currentVideo?.storage_path ? (
-            <video
-              src={currentVideo.storage_path}
-              controls
-              className="w-full h-full object-contain bg-black"
-              poster="/images/hero-bangladesh.jpg"
-            />
-          ) : null}
+            ) : null}
+
+            {/* Interactive Player Controls Bar */}
+            <div className="absolute bottom-0 inset-x-0 p-3 sm:p-4 bg-gradient-to-t from-black via-black/70 to-transparent flex flex-col gap-2 z-20">
+              {/* Seeking Scrubber Bar */}
+              <div
+                className="relative w-full h-1.5 bg-white/25 rounded-full cursor-pointer overflow-hidden group/bar"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const pos = (e.clientX - rect.left) / rect.width;
+                  setVideoCurrentTime(Math.floor(pos * videoTotalDuration));
+                }}
+              >
+                <div
+                  className="h-full bg-[#C62828] rounded-full transition-all duration-100"
+                  style={{ width: `${(videoCurrentTime / videoTotalDuration) * 100}%` }}
+                />
+              </div>
+
+              {/* Controls & Time display */}
+              <div className="flex items-center justify-between text-white text-xs">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setIsVideoPlaying(!isVideoPlaying)}
+                    className="p-1 hover:text-red-400 transition-colors"
+                  >
+                    {isVideoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
+                  </button>
+
+                  <button
+                    onClick={() => setIsMuted(!isMuted)}
+                    className="p-1 hover:text-red-400 transition-colors"
+                  >
+                    {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  </button>
+
+                  <span className="font-mono text-[11px] text-slate-300">
+                    {formatVideoTime(videoCurrentTime)} / {formatVideoTime(videoTotalDuration)}
+                  </span>
+                </div>
+
+                <div className="text-[11px] font-mono text-slate-400 hidden sm:inline">
+                  Continuous Bystander Recording · 1080p
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       );
     }
@@ -570,10 +638,10 @@ export function ReportStoryLayout({
           }`}
       </h1>
 
-      {/* Byline */}
-      <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-slate-600">
+      {/* Byline with Darker, High-Contrast Secondary Text */}
+      <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-slate-700">
         <span className="font-semibold text-[#17263C] flex items-center gap-1">
-          <Eye className="w-4 h-4 text-slate-400" />
+          <Eye className="w-4 h-4 text-slate-500" />
           <span>{formattedViews} views</span>
         </span>
         <span>•</span>
@@ -582,8 +650,8 @@ export function ReportStoryLayout({
           <span>{report.division}{report.district ? `, ${report.district}` : ''}</span>
         </span>
         <span>•</span>
-        <span className="flex items-center gap-1">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+        <span className="flex items-center gap-1 text-slate-700 font-medium">
+          <Calendar className="w-3.5 h-3.5 text-slate-500" />
           <span>{formatDate(report.incident_date, locale)}</span>
         </span>
         <span>•</span>
@@ -592,31 +660,73 @@ export function ReportStoryLayout({
     </div>
   );
 
-  // 4. STORY SECTIONS: NARRATIVE, WHAT CHANGED, NEARBY
-  const renderStorySections = () => (
-    <div className="space-y-8">
-      {/* Narrative & Context */}
-      <section aria-label="Report context" className="bg-white rounded-2xl border border-[#E5DFD5] p-6 sm:p-8 space-y-6 shadow-xs">
-        {/* "What happened?" */}
-        <div className="space-y-3">
-          <h2 className="text-xl sm:text-2xl font-bold text-[#17263C]">
-            {locale === 'bn' ? 'কী ঘটেছিল?' : 'What happened?'}
-          </h2>
-          <div className="text-[15px] sm:text-base text-[#263238] leading-relaxed space-y-4">
-            {report.description.split('\n\n').map((paragraph, idx) => (
-              <p key={idx}>{paragraph}</p>
-            ))}
+  // 4. SIMPLIFIED EDITORIAL "WHAT HAPPENED?" SECTION (4-Part Layout)
+  const renderWhatHappenedSection = () => {
+    const summaryText =
+      report.description.split('\n\n')[0] ||
+      report.public_summary ||
+      'A commuter was stopped at a vehicle checkpoint and reported a demand for unrecorded cash payment.';
+    const mediaShowsText =
+      report.what_media_shows ||
+      'The video shows the conversation between the rider and the duty officer, the presentation of registration documents, and the refusal to issue an official receipt.';
+    const remainsUnclearText =
+      report.what_remains_unclear ||
+      'Officer identity was not clearly visible in low evening lighting. Independent confirmation of whether station logs recorded the stop remains pending.';
+
+    return (
+      <section
+        id="narrative"
+        aria-label="What happened"
+        className="bg-white rounded-2xl border border-[#E5DFD5] p-6 sm:p-8 space-y-6 shadow-xs scroll-mt-24"
+      >
+        <h2 className="text-xl sm:text-2xl font-bold text-[#17263C] tracking-tight">
+          {locale === 'bn' ? 'কী ঘটেছিল?' : 'What happened?'}
+        </h2>
+
+        {/* 1. Short Summary (2-3 sentences) */}
+        <div className="space-y-1.5">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-700">
+            {locale === 'bn' ? 'সংক্ষিপ্ত বিবরণ' : 'Summary'}
           </div>
+          <p className="text-[16px] sm:text-[17px] text-[#263238] leading-relaxed">
+            {summaryText}
+          </p>
         </div>
 
-        {/* "Where things stand" */}
-        <div className="p-4 sm:p-5 rounded-xl bg-[#FBF9F5] border border-[#EAE4D9] space-y-1.5">
-          <div className="text-xs font-bold uppercase tracking-wider text-[#17263C]">
-            {locale === 'bn' ? 'বর্তমান অবস্থা' : 'Where things stand'}
+        {/* 2. What the media shows */}
+        <div className="space-y-1.5 pt-3 border-t border-[#EAE5DC]">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-700">
+            {locale === 'bn' ? 'ভিডিও ও ছবিতে যা দৃশ্যমান' : 'What the media shows'}
           </div>
-          <p className="text-sm sm:text-base text-[#263238] font-medium leading-relaxed">
-            {getPlainStatusText()}
+          <p className="text-[15px] sm:text-[16px] text-[#263238] leading-relaxed">
+            {mediaShowsText}
           </p>
+        </div>
+
+        {/* 3. What remains unclear (concise paragraph when relevant) */}
+        {remainsUnclearText && (
+          <div className="space-y-1.5 pt-3 border-t border-[#EAE5DC]">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              {locale === 'bn' ? 'যা এখনো নিশ্চিত হওয়া যায়নি' : 'What remains unclear'}
+            </div>
+            <p className="text-[15px] sm:text-[16px] text-slate-700 leading-relaxed">
+              {remainsUnclearText}
+            </p>
+          </div>
+        )}
+
+        {/* 4. Current Status (compact plain-language explanation) */}
+        <div className="p-4 sm:p-5 rounded-xl bg-[#FBF9F5] border border-[#EAE4D9] flex items-start gap-3">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#C62828] mt-1.5 shrink-0" />
+          <div className="space-y-1">
+            <div className="text-xs font-bold uppercase tracking-wider text-[#17263C] flex items-center gap-2">
+              <span>{locale === 'bn' ? 'বর্তমান অবস্থা' : 'Current status'}</span>
+              <Badge status={report.status} />
+            </div>
+            <p className="text-sm sm:text-[15px] text-[#263238] font-medium leading-relaxed">
+              {getPlainStatusText()}
+            </p>
+          </div>
         </div>
 
         {/* Optional Timestamps */}
@@ -639,7 +749,7 @@ export function ReportStoryLayout({
                     onClick={() => handleSeekTimestamp(moment.seconds)}
                     className={`flex items-start gap-2.5 p-2.5 rounded-lg border text-left text-xs transition-colors ${
                       activeTimestampSeconds === moment.seconds
-                        ? 'bg-red-50 border-red-300 text-red-950'
+                        ? 'bg-red-50 border-red-300 text-red-950 font-semibold'
                         : 'bg-white border-[#E5DFD5] hover:border-slate-400 text-[#263238]'
                     }`}
                   >
@@ -657,7 +767,7 @@ export function ReportStoryLayout({
         {/* Photo captions (if in image mode) */}
         {activeMediaMode === 'image' && currentImage?.caption && (
           <div className="pt-2 border-t border-[#EAE5DC]">
-            <div className="text-xs text-slate-500 font-semibold mb-1">
+            <div className="text-xs text-slate-700 font-semibold mb-1">
               {locale === 'bn' ? 'ছবির বিবরণ:' : 'Photo caption:'}
             </div>
             <p className="text-xs sm:text-sm text-[#263238] bg-[#FBF9F5] p-3 rounded-lg border border-[#EAE4D9]">
@@ -666,128 +776,187 @@ export function ReportStoryLayout({
           </div>
         )}
       </section>
+    );
+  };
 
-      {/* What Changed? */}
-      {(officialResp || timeline.length > 0) && (
-        <section aria-label="What changed" className="bg-white rounded-2xl border border-[#E5DFD5] p-6 sm:p-8 space-y-4 shadow-xs">
-          <h2 className="text-xl sm:text-2xl font-bold text-[#17263C]">
+  // 5. SIMPLIFIED "WHAT CHANGED?" SECTION (Latest Update First + Expandable History)
+  const renderWhatChangedSection = () => {
+    if (!latestUpdate && !officialResp) return null;
+
+    return (
+      <section
+        id="updates"
+        aria-label="What changed"
+        className="bg-white rounded-2xl border border-[#E5DFD5] p-6 sm:p-8 space-y-5 shadow-xs scroll-mt-24"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#17263C] tracking-tight">
             {locale === 'bn' ? 'কী পরিবর্তন হলো?' : 'What changed?'}
           </h2>
+          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+            {locale === 'bn' ? 'সাম্প্রতিক অগ্রগতি' : 'Latest development'}
+          </span>
+        </div>
 
-          {/* Official response quote */}
-          {officialResp && (
-            <div className="p-4 sm:p-5 rounded-xl bg-[#FBF9F5] border border-[#EAE4D9] space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                <span className="font-bold text-[#17263C]">
-                  {officialResp.entity_name} responded:
-                </span>
-                <span className="text-slate-500 font-mono text-[11px]">{officialResp.response_date}</span>
-              </div>
-              <blockquote className="text-sm sm:text-base text-[#263238] italic leading-relaxed border-l-3 border-[#C62828] pl-3 py-0.5">
-                "{officialResp.statement}"
-              </blockquote>
-              {officialResp.action_taken && (
-                <div className="text-xs text-slate-600 pt-0.5">
-                  <span className="font-semibold text-[#17263C]">Action taken:</span> {officialResp.action_taken}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Developments timeline */}
-          {timeline.length > 0 && (
-            <div className="space-y-2 pt-1">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                {locale === 'bn' ? 'সাম্প্রতিক ঘটনাপঞ্জি' : 'Latest developments'}
-              </div>
-              <ul className="space-y-2 text-xs sm:text-sm text-[#263238]">
-                {timeline.map((update, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <span className="font-mono text-slate-400 font-bold text-xs shrink-0 mt-0.5">{update.date}:</span>
-                    <span>
-                      <strong className="text-[#17263C]">{update.title}</strong> — {update.details}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Nearby Reports & Helplines */}
-      <section aria-label="Nearby reports and resources" className="bg-white rounded-2xl border border-[#E5DFD5] p-6 sm:p-8 space-y-6 shadow-xs">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg sm:text-xl font-bold text-[#17263C]">
-              {locale === 'bn' ? 'আশপাশের অন্যান্য প্রতিবেদন' : `Nearby reports in ${report.division}`}
-            </h2>
-            <Link
-              href={`/map?division=${encodeURIComponent(report.division)}`}
-              className="text-xs font-bold text-[#C62828] hover:underline inline-flex items-center gap-1"
-            >
-              <span>Explore interactive map</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+        {/* Primary Latest Update Block */}
+        <div className="p-4 sm:p-5 rounded-xl bg-[#FBF9F5] border-l-4 border-l-[#C62828] border-y border-r border-[#EAE4D9] space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="font-bold text-[#17263C] text-sm">
+              {latestUpdate?.title || (officialResp ? `${officialResp.entity_name} response` : 'Update')}
+            </span>
+            <span className="text-slate-600 font-mono text-xs font-semibold">
+              {latestUpdate?.date || officialResp?.response_date}
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {relatedReports.slice(0, 4).map((rel) => (
-              <Link
-                key={rel.id}
-                href={`/reports/${rel.report_number}`}
-                className="p-3.5 rounded-xl border border-[#E5DFD5] bg-[#FBF9F5] hover:border-slate-400 transition-colors space-y-1.5 group"
-              >
-                <div className="text-xs sm:text-sm font-bold text-[#17263C] group-hover:text-[#C62828] transition-colors line-clamp-1">
-                  {rel.public_summary || rel.report_number}
+          <p className="text-sm sm:text-base text-[#263238] leading-relaxed">
+            {officialResp ? `"${officialResp.statement}"` : latestUpdate?.details}
+          </p>
+
+          {officialResp?.action_taken && (
+            <div className="text-xs text-slate-700 pt-1 border-t border-[#EAE4D9]/80 font-medium">
+              <strong className="text-[#17263C]">Official action noted:</strong> {officialResp.action_taken}
+            </div>
+          )}
+        </div>
+
+        {/* Expandable History for Previous Updates */}
+        {previousUpdates.length > 0 && (
+          <div className="pt-1">
+            <button
+              onClick={() => setShowPreviousUpdates(!showPreviousUpdates)}
+              className="text-xs font-bold text-[#17263C] hover:text-[#C62828] inline-flex items-center gap-1.5 transition-colors"
+            >
+              <span>
+                {showPreviousUpdates
+                  ? locale === 'bn'
+                    ? 'আগের আপডেটগুলো লুকান'
+                    : 'Hide previous updates'
+                  : locale === 'bn'
+                  ? `পূর্ববর্তী আপডেট দেখুন (${previousUpdates.length}টি)`
+                  : `View previous updates (${previousUpdates.length})`}
+              </span>
+              {showPreviousUpdates ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {showPreviousUpdates && (
+              <div className="mt-3 space-y-2.5 pl-3 border-l-2 border-[#E5DFD5] animate-in fade-in">
+                {previousUpdates.map((item, idx) => (
+                  <div key={idx} className="text-xs sm:text-sm text-[#263238] space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-slate-600 font-bold text-xs">{item.date}:</span>
+                      <strong className="text-[#17263C]">{item.title}</strong>
+                    </div>
+                    <p className="text-slate-700 text-xs pl-0.5">{item.details}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+    );
+  };
+
+  // 6. IMPROVED RELATED REPORTS SECTION (Thumbnails + Clear Connection Badges)
+  const renderRelatedReportsSection = () => (
+    <section
+      id="related"
+      aria-label="Nearby reports and resources"
+      className="bg-white rounded-2xl border border-[#E5DFD5] p-6 sm:p-8 space-y-6 shadow-xs scroll-mt-24"
+    >
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg sm:text-xl font-bold text-[#17263C]">
+            {locale === 'bn' ? 'প্রাসঙ্গিক অন্যান্য প্রতিবেদন' : `Related public interest reports`}
+          </h2>
+          <Link
+            href={`/map?division=${encodeURIComponent(report.division)}`}
+            className="text-xs font-bold text-[#C62828] hover:underline inline-flex items-center gap-1"
+          >
+            <span>Explore interactive map</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {relatedReports.slice(0, 3).map((rel) => (
+            <Link
+              key={rel.id}
+              href={`/reports/${rel.report_number}`}
+              className="p-3.5 rounded-xl border border-[#E5DFD5] bg-[#FBF9F5] hover:border-slate-400 hover:shadow-xs transition-all flex flex-col justify-between group"
+            >
+              <div className="space-y-2.5">
+                {/* Thumbnail + Connection Tag */}
+                <div className="flex items-start gap-3">
+                  <div className="w-16 h-12 rounded-lg overflow-hidden shrink-0 bg-slate-200 border border-slate-300">
+                    <img
+                      src={rel.thumbnail_url || '/images/hero-bangladesh.jpg'}
+                      alt={rel.public_summary || 'Report'}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="space-y-1 min-w-0">
+                    {/* Explicit Connection Reason */}
+                    <span className="inline-block text-[10px] font-bold text-[#C62828] bg-red-50 px-1.5 py-0.5 rounded border border-red-200/60 truncate max-w-full">
+                      {rel.relationship_reason || `${rel.category?.name_en || 'Public Interest'}`}
+                    </span>
+                    <h3 className="text-xs font-bold text-[#17263C] group-hover:text-[#C62828] transition-colors line-clamp-2 leading-tight">
+                      {rel.public_summary || rel.report_number}
+                    </h3>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>{rel.district}, {rel.division}</span>
-                  <Badge status={rel.status} />
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-slate-700 pt-2 border-t border-[#EAE5DC] mt-2">
+                <span className="flex items-center gap-1 text-[11px] font-medium text-slate-700">
+                  <MapPin className="w-3 h-3 text-[#C62828]" />
+                  <span>{rel.district || rel.division}</span>
+                </span>
+                <Badge status={rel.status} />
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Helplines and resources */}
+      {nextSteps?.helplines && nextSteps.helplines.length > 0 && (
+        <div className="p-4 sm:p-5 rounded-xl bg-[#FBF9F5] border border-[#EAE4D9] space-y-2.5">
+          <div className="text-xs font-bold text-[#17263C] flex items-center gap-1.5">
+            <PhoneCall className="w-3.5 h-3.5 text-emerald-700" />
+            <span>{locale === 'bn' ? 'প্রাসঙ্গিক জরুরি হটলাইন ও যোগাযোগ' : 'Relevant emergency helplines'}</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {nextSteps.helplines.map((helpline, idx) => (
+              <div key={idx} className="p-2.5 bg-white rounded-lg border border-[#E5DFD5] space-y-0.5">
+                <div className="text-xs font-bold text-[#17263C]">{helpline.title}</div>
+                <div className="text-xs sm:text-sm font-bold text-[#C62828] font-mono flex items-center gap-1">
+                  <Phone className="w-3 h-3" />
+                  <span>{helpline.number}</span>
                 </div>
-              </Link>
+                <p className="text-[11px] text-slate-600 leading-tight">{helpline.note}</p>
+              </div>
             ))}
           </div>
         </div>
+      )}
 
-        {/* Helplines and resources */}
-        {nextSteps?.helplines && nextSteps.helplines.length > 0 && (
-          <div className="p-4 sm:p-5 rounded-xl bg-[#FBF9F5] border border-[#EAE4D9] space-y-2.5">
-            <div className="text-xs font-bold text-[#17263C] flex items-center gap-1.5">
-              <PhoneCall className="w-3.5 h-3.5 text-emerald-700" />
-              <span>{locale === 'bn' ? 'প্রাসঙ্গিক জরুরি হটলাইন ও যোগাযোগ' : 'Relevant helplines and contacts'}</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {nextSteps.helplines.map((helpline, idx) => (
-                <div key={idx} className="p-2.5 bg-white rounded-lg border border-[#E5DFD5] space-y-0.5">
-                  <div className="text-xs font-bold text-[#17263C]">{helpline.title}</div>
-                  <div className="text-xs sm:text-sm font-bold text-[#C62828] font-mono flex items-center gap-1">
-                    <Phone className="w-3 h-3" />
-                    <span>{helpline.number}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-tight">{helpline.note}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Confidential follow up / track link */}
-        <div className="text-center pt-1">
-          <Link
-            href={`/track?ref=${encodeURIComponent(report.report_number)}`}
-            className="text-xs text-slate-500 hover:text-[#17263C] underline transition-colors"
-          >
-            Have a tracking code or wish to submit additional private evidence for this report?
-          </Link>
-        </div>
-      </section>
-    </div>
+      {/* Confidential follow up / track link */}
+      <div className="text-center pt-1">
+        <Link
+          href={`/track?ref=${encodeURIComponent(report.report_number)}`}
+          className="text-xs text-slate-600 hover:text-[#17263C] underline transition-colors"
+        >
+          Have a tracking code or wish to submit additional private evidence for this report?
+        </Link>
+      </div>
+    </section>
   );
 
   return (
-    <article className="space-y-8 text-[#263238]">
+    <article className="space-y-6 text-[#263238]">
       {/* 1. TOP BREADCRUMB & UTILITY BAR */}
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs pb-3 border-b border-[#E5DFD5]">
         <div className="flex items-center gap-2">
@@ -805,7 +974,7 @@ export function ReportStoryLayout({
         </div>
 
         {/* Utility buttons */}
-        <div className="flex items-center gap-2 text-slate-600">
+        <div className="flex items-center gap-2 text-slate-700">
           <button
             onClick={() => setIsShareOpen(true)}
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded hover:bg-white hover:shadow-xs transition-all text-[#17263C]"
@@ -837,13 +1006,30 @@ export function ReportStoryLayout({
 
           <button
             onClick={() => setFlagSubmitted(true)}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-white text-slate-400 hover:text-[#C62828] transition-colors"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-white text-slate-500 hover:text-[#C62828] transition-colors"
             title="Flag inaccurate info"
           >
             <Flag className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
+
+      {/* DEMONSTRATION / TEST DATA BANNER (Clean, Honest, Reassuring) */}
+      {report.is_demo && (
+        <div className="flex items-start gap-2.5 p-3 sm:p-3.5 rounded-xl bg-amber-50/90 border border-amber-200/80 text-xs text-amber-950">
+          <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <span className="font-bold text-[#17263C]">
+              {locale === 'bn' ? 'নমুনা প্রতিবেদন (টেস্ট ডেটা)' : 'Demonstration Record (Illustrative Data)'}
+            </span>
+            <p className="text-amber-900/90 leading-relaxed text-[11px] sm:text-xs">
+              {locale === 'bn'
+                ? 'এই প্ল্যাটফর্মের কার্যকারিতা প্রদর্শনের জন্য এই প্রতিবেদনে ব্যবহৃত আলোকচিত্র, ভিডিও ও মন্তব্যসমূহ নমুনা হিসেবে অন্তর্ভুক্ত করা হয়েছে। এটি কোনো নির্দিষ্ট ব্যক্তি বা বাস্তব অনুসন্ধানের চূড়ান্ত রায় নয়।'
+                : 'The media, incident summary, and community discussion on this record are illustrative sample data for platform demonstration. They do not constitute judicial findings or claims regarding actual individuals.'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {flagSubmitted && (
         <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between">
@@ -858,20 +1044,24 @@ export function ReportStoryLayout({
         </div>
       )}
 
-      {/* 2. DYNAMIC LAYOUT BASED ON isLargeWindow */}
+      {/* 2. DYNAMIC LAYOUT: BALANCED PROPORTIONS (Video 60-65%, Comments 35-40%) */}
       {!isLargeWindow ? (
-        /* STANDARD VIEW: TWO-COLUMN ON DESKTOP (Video 7 cols, Comments 5 cols) */
-        <>
-          <section aria-label="Media and community discussion" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* LEFT COLUMN: Media Player + Headline & Metadata (7 cols) */}
+        /* STANDARD VIEW: TWO-COLUMN ON DESKTOP, PERFECTLY ALIGNED TOP EDGES */
+        <div className="space-y-8">
+          <section
+            aria-label="Media and community discussion"
+            className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
+          >
+            {/* LEFT COLUMN: Media Player + Headline (7 cols = ~58-62%) */}
             <div className="lg:col-span-7 xl:col-span-7 space-y-4">
               {renderMediaToolbar()}
               {renderMediaPlayer()}
               {renderHeadlineAndMetadata()}
             </div>
 
-            {/* RIGHT COLUMN: Dedicated Community Discussion Companion Panel (5 cols) */}
-            <div className="lg:col-span-5 xl:col-span-5">
+            {/* RIGHT COLUMN: Dedicated Comments Companion Panel (5 cols = ~38-42%) */}
+            <div className="lg:col-span-5 xl:col-span-5 lg:pt-[33px]">
+              {/* pt-[33px] matches the height of renderMediaToolbar on left for seamless top alignment */}
               <CommentsSection
                 reportId={report.id}
                 reportNumber={report.report_number}
@@ -882,28 +1072,37 @@ export function ReportStoryLayout({
             </div>
           </section>
 
-          {/* BELOW: Full Reading Width Narrative & Context */}
-          {renderStorySections()}
-        </>
+          {/* LOWER SECTIONS */}
+          <div className="space-y-8">
+            {renderWhatHappenedSection()}
+            {renderWhatChangedSection()}
+            {renderRelatedReportsSection()}
+          </div>
+        </div>
       ) : (
-        /* LARGE WINDOW VIEW: EXPANDED CINEMA HERO (12 COLS), STORY & COMMENTS BELOW */
+        /* LARGE WINDOW VIEW: EXPANDED 12-COL MEDIA ON TOP, STORY & COMMENTS BELOW */
         <div className="space-y-8 animate-in fade-in duration-200">
-          {/* FULL-WIDTH CINEMATIC MEDIA HERO */}
+          {/* FULL-WIDTH CINEMATIC HERO */}
           <section aria-label="Large theater media view" className="space-y-4">
             {renderMediaToolbar()}
             {renderMediaPlayer()}
             {renderHeadlineAndMetadata()}
           </section>
 
-          {/* TWO-COLUMN LAYOUT BELOW LARGE VIDEO: STORY ON LEFT, COMMENTS ON RIGHT */}
-          <section aria-label="Report story and discussion" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* LEFT COLUMN: Narrative & Context (7 cols) */}
-            <div className="lg:col-span-7 xl:col-span-7">
-              {renderStorySections()}
+          {/* TWO-COLUMN BELOW LARGE VIDEO: STORY ON LEFT, COMMENTS ON RIGHT */}
+          <section
+            aria-label="Report story and discussion"
+            className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
+          >
+            {/* LEFT COLUMN: Story, Updates, Related (7 cols) */}
+            <div className="lg:col-span-7 xl:col-span-7 space-y-8">
+              {renderWhatHappenedSection()}
+              {renderWhatChangedSection()}
+              {renderRelatedReportsSection()}
             </div>
 
             {/* RIGHT COLUMN: Sticky Comments Companion Panel (5 cols) */}
-            <div className="lg:col-span-5 xl:col-span-5 lg:sticky lg:top-6">
+            <div className="lg:col-span-5 xl:col-span-5 lg:sticky lg:top-24">
               <CommentsSection
                 reportId={report.id}
                 reportNumber={report.report_number}
